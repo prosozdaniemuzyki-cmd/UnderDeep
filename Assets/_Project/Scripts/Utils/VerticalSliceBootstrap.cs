@@ -451,7 +451,7 @@ namespace UnderDeep.Utils
             rect.offsetMin = new Vector2(8, 2);
             rect.offsetMax = new Vector2(-8, -2);
             var text = textObject.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = size;
             text.color = new Color(0.76f, 0.93f, 0.85f);
             text.alignment = alignment;
