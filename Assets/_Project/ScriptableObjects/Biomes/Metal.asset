@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa78c6b971493b040b703d563c8c0d86, type: 3}
+  m_Name: Metal
+  m_EditorClassIdentifier: UnderDeep.World::UnderDeep.World.BiomeDef
+  id: 1
+  displayName: "\u041C\u0435\u0442\u0430\u043B\u043B\u0438\u0447\u0435\u0441\u043A\u0438\u0439
+    \u0441\u043B\u043E\u0439"
+  minDepth: 10
+  maxDepth: 20
+  stoneChance: 0.4
+  crystalChance: 0.05
+  bioChance: 0
+  wireChance: 0.04
+  gasChance: 0.02
+  fogColor: {r: 0, g: 0, b: 0, a: 1}
+  wormSpawnChance: 0.02

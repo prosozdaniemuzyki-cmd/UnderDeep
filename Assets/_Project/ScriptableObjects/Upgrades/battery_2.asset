@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18258fc502eab594ab25ee5954179f31, type: 3}
+  m_Name: battery_2
+  m_EditorClassIdentifier: UnderDeep.Progression::UnderDeep.Progression.UpgradeDef
+  id: battery_2
+  displayName: "\u0410\u043A\u043A\u0443\u043C\u0443\u043B\u044F\u0442\u043E\u0440
+    II"
+  description: "\u041C\u0430\u043A\u0441. \u0442\u043E\u043F\u043B\u0438\u0432\u043E
+    +20"
+  costs:
+  - type: 1
+    amount: 60
+  mods:
+  - stat: 1
+    value: 20
+  prereqId: battery_1
+  icon: {fileID: 0}
