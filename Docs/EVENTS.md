@@ -8,6 +8,7 @@
 readonly struct BlockMined { Vector2Int pos; BlockType type; int yield; ResourceType resource; }
 readonly struct BlockDamaged { Vector2Int pos; BlockType type; float progress; }
 readonly struct BiomeEntered { BiomeId biome; int depth; }
+readonly struct TrapTriggered { Vector2Int pos; TrapType type; } // Gas / Wire / GasTick / CaveIn; публикуют Utils/TrapSystem, Utils/CaveInSystem
 ```
 
 ## Player
@@ -30,6 +31,7 @@ readonly struct ResourceCollected { ResourceType type; int amount; int totalRun;
 readonly struct RunEnded { RunEndReason reason; int depth; Dictionary<ResourceType,int> loot; }
 readonly struct UpgradePurchased { string id; }
 readonly struct ArtifactFound { string artifactId; int count; }
+readonly struct EvacRequested { } // Player (DrillSystem, хоткей B) → Progression (RunResultHandler.Evacuate)
 ```
 
 ## Platform / GameState

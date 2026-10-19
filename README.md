@@ -87,15 +87,16 @@
 ```
 Assets/_Project/
 ├── Art/            drone_concept.png, promo_banner.png
-├── Core/           EventBus, GameStateMachine, ServiceLocator, SaveService, Audio/VFX
+├── Core/           EventBus, GameStateMachine, ServiceLocator, SaveService, Audio
 ├── Scripts/
-│   ├── World/      WorldGrid, BiomeDef, BlockDef, TrapSystem, CaveInSystem
-│   ├── Player/     DroneController, DrillSystem, Fuel/Heat/Sanity/Health, Inventory, PlayerLight, SanityEffects
+│   ├── World/      WorldGrid, BiomeDef, BlockDef
+│   ├── Player/     DroneController, DrillSystem, Fuel/Heat/Sanity/Health, Inventory, PlayerLight
 │   ├── Enemies/    EnemyBase, RustWorm, FireflyGuardian, CrystalSpider, Hallucination, Spawner
 │   ├── Progression/UpgradeSystem, ArtifactManager, EndingManager, RunResultHandler
 │   ├── UI/         HUD, BaseShop, DeathScreen
 │   ├── Platform/   IPlatformProvider, Yandex/VK/Standalone
-│   └── Utils/      CameraFollow, RadarVision, ScreenShake, BootWebGLHooks
+│   └── Utils/      (без asmdef, видит все модули) Boot, VFXManager, TrapSystem, CaveInSystem, SanityEffects, InfiniteMode,
+│                   CameraFollow, RadarVision, ScreenShake, BootWebGLHooks
 ├── ScriptableObjects/Blocks, Biomes, Upgrades
 ├── Scenes/         Boot, Base, Run
 └── Plugins/WebGL/  YandexSDK.jslib, VKBridge.jslib

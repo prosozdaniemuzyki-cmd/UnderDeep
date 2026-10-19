@@ -90,16 +90,22 @@ Tests/
 ### 3.2 Assembly Definitions (изоляция)
 
 ```
-UnderDeep.Core.asmdef        // никакого UnityEngine.UI, только Core
+UnderDeep.Core.asmdef        // "references": [] — никакого UnityEngine.UI, ни одного модуля
 UnderDeep.World.asmdef       // зависит от Core
-UnderDeep.Player.asmdef      // зависит от Core, World (IDrillTarget)
-UnderDeep.Enemies.asmdef     // зависит от Core, World, Player (только интерфейсы)
+UnderDeep.Platform.asmdef    // зависит от Core
+UnderDeep.Player.asmdef      // зависит от Core, World (IDrillTarget) + пакеты Unity.InputSystem, Unity.RenderPipelines.Universal.2D.Runtime (Light2D)
+UnderDeep.Enemies.asmdef     // зависит от Core, World, Player
 UnderDeep.Progression.asmdef // зависит от Core, Player
-UnderDeep.UI.asmdef          // зависит от Core, Progression, Player (read-only)
-UnderDeep.Platform.asmdef    // зависит от Core, Progression (Save)
+UnderDeep.UI.asmdef          // зависит от Core, Progression, Player, World (read-only) + пакеты UnityEngine.UI, Unity.TextMeshPro
+Scripts/Utils/  (без asmdef → Assembly-CSharp)        // видит все модули
+Assets/Editor/  (без asmdef → Assembly-CSharp-Editor) // видит все модули
 ```
 
-**Запрещены циклические зависимости.** Проверка — `asmdef` reference graph.
+**Запрещены циклические и обратные зависимости.** Проверка — `asmdef` reference graph.
+
+*   Ссылки asmdef не транзитивны: тип модуля доступен только если модуль есть в `references` (и разрешён графом выше).
+*   Доступ «снизу вверх» — только через EventBus (struct-события в Core), ServiceLocator по интерфейсу из Core или вынос кода в `Scripts/Utils/` (ADR-5).
+*   Пакетные сборки (Input System, uGUI/TMP, URP 2D) подключаются явно в `references` того модуля, которому они нужны.
 
 ### 3.3 Паттерны
 
@@ -220,6 +226,8 @@ struct RunSave { // только в памяти забега, сбрасыва�
 | `RunEnded` | reason (Death/Evac), depth, loot | GameStateMachine |
 | `UpgradePurchased` | id | Progression |
 | `DepthReached` | depth, biome | Player |
+| `TrapTriggered` | pos, type (Gas/Wire/GasTick/CaveIn) | Utils (`TrapSystem`, `CaveInSystem`) |
+| `EvacRequested` | — | Player (`DrillSystem`, хоткей B) → Progression |
 
 Полный список — `Docs/EVENTS.md`.
 
@@ -333,6 +341,7 @@ enum PlatformId { Standalone, YandexGames, VKPlay }
 | 2 | 2026-10-19 | ServiceLocator вместо Zenject | Меньше веса сборки для Web |
 | 3 | 2026-10-19 | EventBus struct вместо C# event | Zero-GC для WebGL |
 | 4 | 2026-10-19 | StandaloneProvider fallback | Игра должна работать без SDK |
+| 5 | 2026-10-19 | asmdef-аудит (1.2.1): граф §3.2 — единственный источник истины. Код, которому нужен Player/Enemies из нижних модулей (`TrapSystem`, `CaveInSystem`, `SanityEffects`, `InfiniteMode`), живёт в `Scripts/Utils/` (Assembly-CSharp). События `TrapTriggered` и `EvacRequested` — в Core | Убирает обратные зависимости World→Player, Player→Enemies/Progression, Progression→World без новых asmdef и циклов |
 
 ---
 

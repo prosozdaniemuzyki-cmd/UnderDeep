@@ -52,10 +52,16 @@ namespace UnderDeep.Core
     public readonly struct GameStateChanged { public readonly GameState from; public readonly GameState to; public GameStateChanged(GameState f,GameState t){from=f;to=t;} }
     public readonly struct RewardedResult { public readonly string placement; public readonly bool success; public RewardedResult(string p,bool s){placement=p;success=s;} }
 
+    // Ловушки (газ/провода/обвал). Раньше жило в World/TrapSystem.cs — перенесено в Core, чтобы событие видели все сборки (asmdef-аудит 1.2.1)
+    public readonly struct TrapTriggered { public readonly UnityEngine.Vector2Int pos; public readonly TrapType type; public TrapTriggered(UnityEngine.Vector2Int p, TrapType t){pos=p;type=t;} }
+    // Запрос эвакуации (хоткей B в Player/DrillSystem) → ловит Progression/RunResultHandler. Развязка Player → Progression
+    public readonly struct EvacRequested { }
+
     public enum BlockType : byte { Air=0, Dirt, Stone, RustMetal, CrystalOre, BioGel, GasVein, Wire, CrystalWall, Bedrock, ArtifactChunk }
     public enum ResourceType : byte { RustMetal, Crystal, BioGel, Artifact }
     public enum BiomeId : byte { Surface, Metal, BioCaves, Crystal, Infection, Core }
     public enum SanityStage : byte { Clear, LightDistortion, FakeResources, FakeEnemies, Blackout }
     public enum RunEndReason : byte { Death, Evac, CoreActivate, Escape }
     public enum GameState { Boot, Base, Run, Paused, Death, Evac, Ending }
+    public enum TrapType { Gas, Wire, GasTick, CaveIn }
 }

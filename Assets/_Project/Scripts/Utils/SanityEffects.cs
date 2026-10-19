@@ -3,11 +3,13 @@ using UnityEngine.UI;
 using TMPro;
 using UnderDeep.Core;
 using UnderDeep.World;
+using UnderDeep.Player;
 using System.Collections.Generic;
 
-namespace UnderDeep.Player
+namespace UnderDeep.Utils
 {
     /// <summary>Визуальные и геймплейные эффекты безумия: искажения, ложные ресурсы/враги, потеря управления.</summary>
+    // Живёт в Utils (Assembly-CSharp): спавнит Enemies.Hallucination и рисует UI (Image/TMP), а Player → Enemies запрещено контрактом (asmdef-аудит 1.2.1)
     public class SanityEffects : MonoBehaviour
     {
         [Header("FX")]

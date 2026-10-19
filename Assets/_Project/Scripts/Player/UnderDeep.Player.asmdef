@@ -1,7 +1,7 @@
 {
     "name": "UnderDeep.Player",
     "rootNamespace": "UnderDeep.Player",
-    "references": ["UnderDeep.Core", "UnderDeep.World"],
+    "references": ["UnderDeep.Core", "UnderDeep.World", "Unity.InputSystem", "Unity.RenderPipelines.Universal.2D.Runtime"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
