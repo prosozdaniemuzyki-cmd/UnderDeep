@@ -1,0 +1,14 @@
+{
+    "name": "UnderDeep.UI",
+    "rootNamespace": "UnderDeep.UI",
+    "references": ["UnderDeep.Core", "UnderDeep.Progression", "UnderDeep.Player", "UnderDeep.World"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

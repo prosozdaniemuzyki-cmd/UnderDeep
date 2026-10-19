@@ -1,0 +1,75 @@
+# Баланс Deep Lone — v0.1 MVP
+
+> Все числа — в ScriptableObject, здесь — канон.
+
+## Мир
+
+| Параметр | Значение |
+|----------|----------|
+| Размер MVP | 50 x 100 |
+| Финал | 50 x 1000 (1000м) |
+| Сид | int, дефолт 127 |
+| Тайл | 32x32 px, 1 юнит = 1 тайл |
+
+## Биомы (глубина y)
+
+| Y | Биом | Блоки | Руда | Враг |
+|---|------|-------|------|------|
+| 0-10 | Поверхность | Air, RustMetal | — | — |
+| 10-20 | Металл | RustMetal, Stone, Wire | Crystal 5% | RustWorm |
+| 20-40 | Био-пещеры | Stone, BioGel | Crystal 8% Bio 6% | Firefly |
+| 40-70 | Кристаллы | CrystalWall, Stone | Crystal 15% | Spider |
+| 70-90 | Заражение | Stone, GasVein | Crystal 10% | Hallucination |
+| 90-100 | Ядро | Bedrock | Artifact | — |
+
+## Блоки
+
+| BlockType | HP | Hardness | FuelCost | Drop |
+|-----------|----|----------|----------|------|
+| Air | 0 | 0 | 0 | — |
+| Dirt | 1 | 1.0s | 2 | RustMetal 1 |
+| Stone | 2 | 1.5s | 3 | RustMetal 1 |
+| RustMetal | 2 | 1.2s | 2 | RustMetal 2 |
+| CrystalOre | 3 | 2.0s | 4 | Crystal 1-2 |
+| BioGel | 1 | 0.8s | 1 | BioGel 1 |
+| GasVein | 2 | 1.0s | 3 | — + яд 2с |
+| Wire | 3 | 2.5s | 5 | RustMetal 1 |
+| CrystalWall | 4 | 3.0s | 6 | Crystal 2 |
+| Bedrock | 999 | ∞ | — | — |
+
+Hardness делится на `drillSpeed` (1.0 база, 1.25 MK2, 1.5 MK3).
+
+## Игрок
+
+| Параметр | База | Апгрейд |
+|----------|------|---------|
+| Fuel max | 100 | +20 за Аккумулятор (стак 3) |
+| FuelPerDrill | 5 / сек | — |
+| Heat + | 15 / сек бурения | — |
+| Heat - | 25 / сек покоя | — |
+| Overheat порог | 100 | стан 3с + 1 урон |
+| Health | 3 | Щит 1 раз/забег |
+| Sanity | 0-100 | растет с 500м, -0.5/сек на свету |
+
+## Апгрейды (магазин Базы)
+
+| ID | Цена | Эффект |
+|----|------|--------|
+| drill_mk2 | 50 Rust | speed x1.25 |
+| drill_mk3 | 150 Rust +30 Crystal | speed x1.5 (требует mk2) |
+| battery_1..3 | 40 Crystal | maxFuel +20 |
+| radar | 80 Rust | подсветка редких руд |
+| magnet | 100 Rust +10 Bio | авто-подбор 3 клетки |
+| shield | 200 Rust +50 Crystal | 1 спасение |
+
+## Рогалик
+
+- Смерть: runInventory теряется, артефакты остаются.
+- Эвакуация: кнопка База, стоит 10 топлива (или 1 Crystal). Сохраняет 100% лута.
+- Rewarded revive: 1 раз/забег, восстанавливает 2 HP.
+- Rewarded double: удвоение лута при эвакуации.
+
+## Экономика забега (5-15 мин)
+
+- Средний фарм: 40-80 Rust, 10-20 Crystal за неглубокий забег.
+- Глубокий (до 70м): 150 Rust, 40 Crystal, 5 Bio, шанс артефакта 10%.
