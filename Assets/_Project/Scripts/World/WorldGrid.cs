@@ -77,14 +77,20 @@ namespace UnderDeep.World
             float r = Random.value;
             if (biome==null) return new BlockData{type=BlockType.Dirt, hp=1};
 
-            // order by rarity
+            // кластеры кристаллов (шум)
+            float n = Mathf.PerlinNoise(x*0.12f + seed*0.01f, y*0.08f) * 1.2f;
+            if (n > 0.85f && biome.crystalChance>0) return new BlockData{type=BlockType.CrystalOre, hp=3};
+            if (n > 0.88f && biome.id==BiomeId.Crystal) return new BlockData{type=BlockType.CrystalWall, hp=4};
+
             if (r < biome.gasChance) return new BlockData{type=BlockType.GasVein, hp=2};
             if (r < biome.gasChance + biome.wireChance) return new BlockData{type=BlockType.Wire, hp=3};
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance) return new BlockData{type=BlockType.CrystalOre, hp=3};
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance + biome.bioChance) return new BlockData{type=BlockType.BioGel, hp=1};
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance + biome.bioChance + biome.stoneChance) return new BlockData{type=BlockType.Stone, hp=2};
-            // artifact deep
-            if (y>70 && Random.value < 0.002f) return new BlockData{type=BlockType.ArtifactChunk, hp=2};
+            // артефакт — уникальные 5 точек (каждый биом кроме поверхности)
+            if (y>15 && y<90 && Random.value < 0.0015f) return new BlockData{type=BlockType.ArtifactChunk, hp=3};
+            // небольшая вертикальная жила RustMetal
+            if (Mathf.PerlinNoise(x*0.2f, y*0.05f) > 0.82f) return new BlockData{type=BlockType.RustMetal, hp=2};
             return new BlockData{type=BlockType.Dirt, hp=1};
         }
 

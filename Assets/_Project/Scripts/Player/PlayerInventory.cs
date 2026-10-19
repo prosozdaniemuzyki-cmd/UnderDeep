@@ -21,12 +21,19 @@ namespace UnderDeep.Player
 
         public void Add(ResourceType t,int amt)
         {
-            if (amt<=0) return;
+            if (amt==0) return;
             if (!_run.ContainsKey(t)) _run[t]=0;
             _run[t]+=amt;
-            // also sync to SaveService Run
-            if (ServiceLocator.TryGet<SaveService>(out var save)) save.Run.Add(t,amt);
+            if (_run[t]<0) _run[t]=0;
+            if (amt>0 && ServiceLocator.TryGet<SaveService>(out var save)) save.Run.Add(t,amt);
+            if (amt<0 && ServiceLocator.TryGet<SaveService>(out var sv)) sv.Run.Add(t,amt);
             EventBus.Publish(new ResourceCollected(t,amt,_run[t]));
+        }
+        public bool Consume(ResourceType t,int amt)
+        {
+            if (Get(t) < amt) return false;
+            Add(t, -amt);
+            return true;
         }
 
         public int Get(ResourceType t)=> _run.TryGetValue(t,out var v)?v:0;

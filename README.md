@@ -7,7 +7,9 @@
 
 ![Unity 6000.3](https://img.shields.io/badge/Unity-6000.3-black)
 ![Platform WebGL](https://img.shields.io/badge/WebGL-Yandex%20%7C%20VK-blue)
-![License MIT](https://img.shields.io/badge/license-MIT-green)
+![Status Full MVP](https://img.shields.io/badge/MVP-1.1%20Full-brightgreen)
+
+![promo](Assets/_Project/Art/promo_banner.png)
 
 ---
 
@@ -17,9 +19,10 @@
 2. Сцены в Build Settings по порядку:
    - `Assets/_Project/Scenes/Boot.unity` — вход, инициализация SDK
    - `Assets/_Project/Scenes/Base.unity` — база/магазин
-   - `Assets/_Project/Scenes/Run.unity` — забег (шахта 50x100)
+   - `Assets/_Project/Scenes/Run.unity` — забег (шахта 50×100, ядро 100)
 3. Нажми Play на `Boot`. В редакторе работает `StandaloneProvider` (PlayerPrefs).
 4. Для генерации дефолтных SO: `UnderDeep → Create Default Upgrades / Biomes`.
+5. Камера и свет: `Global Light 2D` + `PlayerLight` (Point Light2D) уже в префабе дрона.
 
 ### Управление
 
@@ -27,14 +30,39 @@
 |----------|------------|----------|
 | Движение | WASD / стрелки | — |
 | Бурить | Space (в сторону взгляда) | Клик по соседнему тайлу |
-| Эвакуация | Кнопка ЭВАКУАЦИЯ | — |
-| Био-гель (лечение+санити) | E | — |
+| Эвакуация | B / кнопка ЭВАКУАЦИЯ | — |
+| Био-гель (лечение −30 санити) | E | — |
+
+---
+
+## Что внутри — Full MVP 1.1
+
+**Мир 50×100, 6 биомов** (0-10 поверхность, 10-20 металл, 20-40 био-пещеры, 40-70 кристаллы, 70-90 заражение, 90-100 ядро) — перлин-кластеры, жилы RustMetal, TrapSystem.
+
+**Блоки**: Dirt/Stone/RustMetal/CrystalOre/BioGel/GasVein/Wire/CrystalWall/Bedrock/ArtifactChunk + дроп (см. `BALANCE.md`)
+
+**Дрон LONE-1**: топливо 100+20/батарея, перегрев 100°→стан 3с, безумие 0-100 (см. ниже), 3 HP + щит, фонарик Point Light2D (flicker, цвет от глубины)
+
+**Безумие**:
+- 25% vignette + хроматика, 50% фейк-руды (6 шт), 75% фейк-враги (Hallucination), 100% blackout 5с. Шёпоты раз в 12с. Свет ×0.6 набора, био-гель −30.
+
+**Враги**:
+- **RustWorm** (50-200м) — по прямой, ломает блоки
+- **Firefly** (200-400м) — орбита 3, knockback 5, +8 санити
+- **CrystalSpider** (400-700м) — прячется в кристаллах, рывок
+- **Hallucination** (700-900м) — сквозь стены, +15 санити, life 8с
+
+**Ловушки**: газ (яд 0.5с×3с), провода (стан 0.6с), обвалы (FallingRock 6 u/s, 12% шанс)
+
+**Прогрессия**: 6 апгрейдов (MK2 50 Rust, MK3 150 Rust+30 Crystal, батареи 40 Crystal, радар 80 Rust, магнит 100+10 Bio, щит 200+50), 5 артефактов по 1 на 20м (перки), 2 финала (жертва/побег) + InfiniteMode
+
+**UI**: HUD (fuel/heat/sanity/Whispers), BaseShop, DeathScreen (revive rewarded), RadarVision (подсветка кристаллов), ScreenShake, VFX/AudioManager
 
 ---
 
 ## Контракт агентов
 
-Главный документ: **[Docs/AGENTS_CONTRACT.md](Docs/AGENTS_CONTRACT.md)**
+Главный документ: **[Docs/AGENTS_CONTRACT.md](Docs/AGENTS_CONTRACT.md)** — обязателен к прочтению перед любым PR.
 
 Коротко:
 - 9 ролей (Architect, World, Player, Enemies, Progression, UI, Platform, TechArt, QA) — каждая владеет своей папкой.
@@ -47,6 +75,9 @@
 - [ARCHITECTURE.md](Docs/ARCHITECTURE.md) — диаграммы, поток бурения
 - [BALANCE.md](Docs/BALANCE.md) — числа добычи, биомы, цены
 - [PLATFORM.md](Docs/PLATFORM.md) — Yandex SDK / VK Bridge / WebGL требования
+- [VFX_LIGHTING.md](Docs/VFX_LIGHTING.md) — свет/частицы/ловушки/безумие
+- [YANDEX_INTEGRATION.md](Docs/YANDEX_INTEGRATION.md) — чек-лист публикации
+- [SCENES.md](Docs/SCENES.md) — состав сцен
 - [EVENTS.md](Docs/EVENTS.md) — все ивенты
 
 ---
@@ -55,14 +86,16 @@
 
 ```
 Assets/_Project/
-├── Core/           EventBus, GameStateMachine, ServiceLocator, SaveService
+├── Art/            drone_concept.png, promo_banner.png
+├── Core/           EventBus, GameStateMachine, ServiceLocator, SaveService, Audio/VFX
 ├── Scripts/
-│   ├── World/      WorldGrid, BiomeDef, BlockDef, генерация
-│   ├── Player/     DroneController, DrillSystem, Fuel/Heat/Sanity/Health, Inventory
-│   ├── Enemies/    EnemyBase, RustWorm, Spawner
-│   ├── Progression/UpgradeSystem, RunResultHandler
+│   ├── World/      WorldGrid, BiomeDef, BlockDef, TrapSystem, CaveInSystem
+│   ├── Player/     DroneController, DrillSystem, Fuel/Heat/Sanity/Health, Inventory, PlayerLight, SanityEffects
+│   ├── Enemies/    EnemyBase, RustWorm, FireflyGuardian, CrystalSpider, Hallucination, Spawner
+│   ├── Progression/UpgradeSystem, ArtifactManager, EndingManager, RunResultHandler
 │   ├── UI/         HUD, BaseShop, DeathScreen
-│   └── Platform/   IPlatformProvider, Yandex/VK/Standalone
+│   ├── Platform/   IPlatformProvider, Yandex/VK/Standalone
+│   └── Utils/      CameraFollow, RadarVision, ScreenShake, BootWebGLHooks
 ├── ScriptableObjects/Blocks, Biomes, Upgrades
 ├── Scenes/         Boot, Base, Run
 └── Plugins/WebGL/  YandexSDK.jslib, VKBridge.jslib
@@ -75,15 +108,15 @@ Assets/_Project/
 ```csharp
 IPlatformProvider provider = PlatformFactory.Create();
 await provider.InitAsync();
-provider.GameReady(); // вызывать ПОСЛЕ загрузки Boot, иначе Яндекс не пустит
+provider.GameReady(); // ПОСЛЕ загрузки Boot, иначе Яндекс не пустит
 await provider.ShowRewardedAsync("revive"); // 1 раз/забег
 await provider.ShowRewardedAsync("double_loot");
 await provider.SetLeaderboardAsync("maxDepth", depth);
 ```
 
-- В редакторе — заглушка `StandaloneProvider` (PlayerPrefs, реклама = true).
+- В редакторе — заглушка `StandaloneProvider` (PlayerPrefs, реклама = true в Editor).
 - В билде WebGL — автодетект по `Application.absoluteURL`.
-- Сохранение <4 КБ JSON, подходит под лимит Yandex Storage.
+- Сохранение <4 КБ JSON, лимит Yandex Storage 10 МБ.
 
 Сборка WebGL: `Brotli`, `Code Opt: Size`, `Exceptions: None`, `Decompression Fallback: true`.
 
@@ -91,17 +124,16 @@ await provider.SetLeaderboardAsync("maxDepth", depth);
 
 ## MVP Чек-лист
 
-- [x] Генерация мира 50x100, 6 биомов, детерминизм по seed
-- [x] Дрон: движение по сетке, бурение кликом/Space, топливо, перегрев
-- [x] 3+ типа блоков (Dirt/Stone/Crystal/BioGas/Wire/Bedrock)
-- [x] Сбор ресурсов, инвентарь забега + мета
-- [x] Враг: RustWorm (уничтожает блоки, движется по прямой)
-- [x] Эвакуация на базу с сохранением лута / смерть с потерей
-- [x] 6 апгрейдов (MK2/MK3, батареи, радар, магнит, щит)
-- [x] HUD + магазин + экран смерти с Rewarded revive
-- [x] Платформенный слой + jslib для Яндекса/VK
-
-Дальше: Светляк/Паук/Галлюцинация, газовые жилы, обвалы, провода, шкала безумия до 100%, 5 артефактов + финалы + бесконечный режим.
+- [x] Генерация мира 50×100 (ядро 100), 6 биомов, детерминизм, Perlin-кластеры
+- [x] Дрон: движение по сетке, бурение кликом/Space, топливо, перегрев, свет
+- [x] 10 типов блоков + ловушки (газ/провода/обвалы)
+- [x] Сбор ресурсов, инвентарь забега + мета, био-гель расход
+- [x] 4 врага по биомам (Worm, Firefly, Spider, Hallucination)
+- [x] Безумие 4 стадии + шёпоты + фейк-руды/враги + blackout
+- [x] Эвакуация (B) с сохранением / смерть с потерей + артефакты 5/5
+- [x] 6 апгрейдов + 2 финала + бесконечный режим
+- [x] HUD + магазин + экран смерти с Rewarded + радар + тряска
+- [x] Платформенный слой + jslib для Яндекса/VK + пауза вкладки
 
 ---
 
@@ -116,10 +148,5 @@ await provider.SetLeaderboardAsync("maxDepth", depth);
 
 ## Лицензия
 
-MIT — делай что хочешь, но укажи авторов.
+MIT
 
----
-
-## Обратная связь
-
-Нашёл баг в бурении? Сначала проверь `Docs/AGENTS_CONTRACT.md` → заведи задачу в `Docs/TASKS.md`.

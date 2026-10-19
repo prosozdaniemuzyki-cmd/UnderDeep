@@ -69,16 +69,19 @@ namespace UnderDeep.Player
                 if (_target.HasValue) { EventBus.Publish(new DrillEnded(_target.Value, false)); _target=null; }
             }
 
-            // bio gel use
+            // bio gel use (лечит и снижает безумие)
             if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
             {
                 if (ServiceLocator.TryGet<PlayerInventory>(out var inv) && inv.Get(ResourceType.BioGel)>0)
                 {
-                    // consume
-                    if (ServiceLocator.TryGet<SaveService>(out var save)) { /* run inv */ }
+                    inv.Add(ResourceType.BioGel, -1);
                     GetComponent<SanitySystem>()?.UseBioGel();
-                    GetComponent<HealthSystem>()?.TakeDamage(-1); // heal
                 }
+            }
+            // быстрый эвак на B
+            if (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame)
+            {
+                FindFirstObjectByType<Progression.RunResultHandler>()?.Evacuate();
             }
         }
 

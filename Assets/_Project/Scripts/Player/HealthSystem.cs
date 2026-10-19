@@ -20,17 +20,24 @@ namespace UnderDeep.Player
 
         public void TakeDamage(int dmg)
         {
-            if (_shieldUsed == false)
+            if (dmg > 0 && !_shieldUsed)
             {
-                // shield saves once
+                // щит спасает 1 раз от смертельного
                 _shieldUsed = true;
-                Debug.Log("[Health] Shield saved!");
+                Debug.Log("[Health] Щит сработал! Спас от урона");
+                EventBus.Publish(new HealthChanged(hp, maxHp));
                 return;
             }
             hp -= dmg;
-            hp = Mathf.Max(0, hp);
+            hp = Mathf.Clamp(hp, 0, maxHp);
             EventBus.Publish(new HealthChanged(hp, maxHp));
             if (hp <= 0) Die();
+        }
+
+        public void Heal(int amt)
+        {
+            hp = Mathf.Clamp(hp + amt, 0, maxHp);
+            EventBus.Publish(new HealthChanged(hp, maxHp));
         }
 
         void Die()
