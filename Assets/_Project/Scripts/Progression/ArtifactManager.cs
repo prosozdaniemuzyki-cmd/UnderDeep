@@ -26,7 +26,7 @@ namespace UnderDeep.Progression
             _save.Meta.artifacts.Add(id);
             _ = _save.PersistMetaAsync();
             EventBus.Publish(new ArtifactFound(id, _save.Meta.artifacts.Count));
-            Debug.Log($"[Artifact] Found {id} ({_save.Meta.artifacts.Count}/5) — {_save.Meta.artifacts.Count==5? \"Финал открыт!\" : \"\"}");
+            Debug.Log($"[Artifact] Found {id} ({_save.Meta.artifacts.Count}/5) — {(_save.Meta.artifacts.Count == 5 ? "Финал открыт!" : "")}");
             // награда
             ApplyPerk(id);
         }

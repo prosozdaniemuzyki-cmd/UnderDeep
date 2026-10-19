@@ -1,7 +1,7 @@
 {
     "name": "UnderDeep.UI",
     "rootNamespace": "UnderDeep.UI",
-    "references": ["UnderDeep.Core", "UnderDeep.Progression", "UnderDeep.Player", "UnderDeep.World"],
+    "references": ["UnderDeep.Core", "UnderDeep.Progression", "UnderDeep.Player", "UnderDeep.World", "UnityEngine.UI", "Unity.TextMeshPro"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

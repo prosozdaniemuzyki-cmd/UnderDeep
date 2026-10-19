@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnderDeep.Core;
+using UnderDeep.World;
+using UnderDeep.Player;
 using System.Collections.Generic;
 
-namespace UnderDeep.World
+namespace UnderDeep.Utils
 {
     /// <summary>Обвалы — при выемке ключевых блоков сверху падают камни. Детектирует отсутствие опоры.</summary>
+    // Живёт в Utils (Assembly-CSharp) вместе с FallingRock: наносит урон Player, а World → Player запрещено контрактом (asmdef-аудит 1.2.1)
     public class CaveInSystem : MonoBehaviour
     {
         private WorldGrid _world;
@@ -37,7 +40,7 @@ namespace UnderDeep.World
         void TriggerFall(Vector2Int pos)
         {
             Debug.Log($"[CaveIn] Falling rock at {pos}");
-            EventBus.Publish(new TrapSystem.TrapTriggered(pos, TrapSystem.TrapType.CaveIn));
+            EventBus.Publish(new TrapTriggered(pos, TrapType.CaveIn));
             // спавн падающего камня
             if (fallingRockPrefab)
             {
@@ -50,8 +53,9 @@ namespace UnderDeep.World
             {
                 // без префаба — просто уничтожаем блок и наносим урон если игрок под ним
                 var wpos = _world.GridToWorld(pos);
-                if (ServiceLocator.TryGet<Player.DroneController>(out var d) && Vector2.Distance(d.transform.position, wpos) < 1.5f)
-                    d.GetComponent<Player.HealthSystem>()?.TakeDamage(1);
+                if (ServiceLocator.TryGet<DroneController>(out var d) && Vector2.Distance(d.transform.position, wpos) < 1.5f
+                    && d.TryGetComponent<HealthSystem>(out var hp))
+                    hp.TakeDamage(1);
                 // мир уже очистится при падении? пока просто удаляем
                 _world.GetType().GetMethod("CheckCaveIn", System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance)?.Invoke(_world, new object[]{pos});
             }
@@ -75,9 +79,9 @@ namespace UnderDeep.World
                 Destroy(gameObject, 0.1f);
             }
             // урон игроку
-            if (ServiceLocator.TryGet<Player.DroneController>(out var d) && Vector2.Distance(transform.position, d.transform.position) < 0.6f)
+            if (ServiceLocator.TryGet<DroneController>(out var d) && Vector2.Distance(transform.position, d.transform.position) < 0.6f)
             {
-                d.GetComponent<Player.HealthSystem>()?.TakeDamage(1);
+                if (d.TryGetComponent<HealthSystem>(out var hp)) hp.TakeDamage(1);
                 Destroy(gameObject);
             }
         }

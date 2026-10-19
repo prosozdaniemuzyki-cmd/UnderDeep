@@ -10,15 +10,15 @@ namespace UnderDeep.Utils
         void OnEnable()
         {
             EventBus.Subscribe<HealthChanged>(OnHealth);
-            EventBus.Subscribe<World.TrapSystem.TrapTriggered>(OnTrap);
+            EventBus.Subscribe<TrapTriggered>(OnTrap);
         }
         void OnDisable()
         {
             EventBus.Unsubscribe<HealthChanged>(OnHealth);
-            EventBus.Unsubscribe<World.TrapSystem.TrapTriggered>(OnTrap);
+            EventBus.Unsubscribe<TrapTriggered>(OnTrap);
         }
         void OnHealth(HealthChanged e){ if(e.hp < e.maxHp) Shake(0.15f, 0.25f); }
-        void OnTrap(World.TrapSystem.TrapTriggered e){ Shake(0.1f, 0.2f); }
+        void OnTrap(TrapTriggered e){ Shake(0.1f, 0.2f); }
 
         public void Shake(float amp, float dur)
         {

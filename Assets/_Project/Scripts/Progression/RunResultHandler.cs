@@ -8,8 +8,12 @@ namespace UnderDeep.Progression
         void OnEnable()
         {
             EventBus.Subscribe<RunEnded>(OnRunEnded);
+            EventBus.Subscribe<EvacRequested>(OnEvacRequested);
         }
-        void OnDisable(){ EventBus.Unsubscribe<RunEnded>(OnRunEnded); }
+        void OnDisable(){ EventBus.Unsubscribe<RunEnded>(OnRunEnded); EventBus.Unsubscribe<EvacRequested>(OnEvacRequested); }
+
+        // хоткей B из Player/DrillSystem приходит событием — прямой ссылки Player → Progression нет
+        void OnEvacRequested(EvacRequested e) => Evacuate();
 
         async void OnRunEnded(RunEnded e)
         {

@@ -54,22 +54,5 @@ namespace UnderDeep.Progression
         }
     }
 
-    public class InfiniteMode : MonoBehaviour
-    {
-        // после финала — процедурка без дна
-        public int chunkHeight = 50;
-        private World.WorldGrid _world;
-        void Awake() => _world = FindFirstObjectByType<World.WorldGrid>();
-        void Update()
-        {
-            if (!ServiceLocator.TryGet<SaveService>(out var s)) return;
-            if (!s.Meta.purchasedUpgrades.Contains("infinite_unlocked")) return;
-            if (!ServiceLocator.TryGet<Player.DroneController>(out var d)) return;
-            if (d.Depth > _world.height - 10)
-            {
-                // расширяем мир (заглушка — логируем)
-                Debug.Log("[Infinite] Расширение мира (процедурка без дна) — TODO: сдвиг грида");
-            }
-        }
-    }
+    // InfiniteMode вынесен в Utils/InfiniteMode.cs: ему нужен World.WorldGrid, а Progression → World запрещено (asmdef-аудит 1.2.1)
 }

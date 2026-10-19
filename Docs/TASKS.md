@@ -16,5 +16,7 @@
 - [x] docs: VFX_LIGHTING, YANDEX_INTEGRATION, SCENES, QUICKSTART, BUILD
 - [x] art: drone_concept, promo_banner, icon_512/120, biomes_preview
 - [x] build: WebGLBuilder (3 цели), PostBuildHook, Yandex/VK templates (index.html), YANDEX_CHECKLIST/WEBGL_OPTIMIZATION/STORE_LISTING
+- [x] fix(asmdef): аудит сборок 1.2.1 — убраны обратные зависимости World→Player, Player→Enemies/Progression, Progression→World; проект компилируется
+- [ ] test: перенести `Tests/` в `Assets/` + тестовые asmdef (EditMode/PlayMode) — сейчас Unity их не видит, нужно согласование контракта
 - [ ] polish: пиксель-арт тайлы 16×32 атлас, анимации дроида (глаз 6 состояний), SFX, скриншоты для стора
 - [x] test: EditMode World/Depth/MetaSave, PlayMode генерация

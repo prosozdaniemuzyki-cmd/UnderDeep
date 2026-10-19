@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnderDeep.Core;
 using UnderDeep.World;
 
@@ -78,10 +79,10 @@ namespace UnderDeep.Player
                     GetComponent<SanitySystem>()?.UseBioGel();
                 }
             }
-            // быстрый эвак на B
+            // быстрый эвак на B: Player не ссылается на Progression — шлём запрос через EventBus, его ловит RunResultHandler
             if (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame)
             {
-                FindFirstObjectByType<Progression.RunResultHandler>()?.Evacuate();
+                EventBus.Publish(new EvacRequested());
             }
         }
 

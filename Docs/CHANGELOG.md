@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.2.1 — 2026-10-19 — asmdef audit
+
+### Исправлено
+- Проект снова компилируется: устранены все CS0234/CS0246/CS0103, а также ошибки, которые всплыли бы следующей волной (CS0191, CS0426, CS0117, CS0138 и синтаксические CS1056/CS1003).
+- Убраны все запрещённые зависимости между сборками (граф — `AGENTS_CONTRACT.md` §3.2):
+  - **World → Player**: `TrapSystem` (+ `GasPoison`) и `CaveInSystem` (+ `FallingRock`) перенесены в `Scripts/Utils/` (namespace `UnderDeep.Utils`).
+  - **Player → Enemies**: `SanityEffects` перенесён в `Scripts/Utils/`.
+  - **Player → Progression**: хоткей эвакуации (B) в `DrillSystem` публикует `EvacRequested`, на него подписан `RunResultHandler` (было `FindFirstObjectByType<RunResultHandler>()`).
+  - **Progression → World**: `InfiniteMode` вынесен из `EndingManager.cs` в `Scripts/Utils/InfiniteMode.cs`.
+- `TrapTriggered` / `TrapType` перенесены из World в `Core/EventBus.cs`. Событие создаётся через конструктор (раньше был инициализатор у readonly struct → CS0191). `CaveInSystem` больше не обращается к ним как к вложенным типам `TrapSystem` (CS0426).
+- `VFXManager`: удалён неверный `using UnderDeep.World.TrapSystem;` (CS0138). `VFXManager` и `ScreenShake` подписаны на `TrapTriggered` из Core.
+- `DrillSystem`: добавлен `using UnityEngine.InputSystem;` (CS0103 `Mouse`/`Keyboard`).
+- Синтаксис: экранированные кавычки внутри интерполяции в `ArtifactManager.cs:29` и `BaseShopUI.cs:39`.
+- asmdef — добавлены только ссылки на пакеты:
+  - `UnderDeep.Player` → `Unity.InputSystem`, `Unity.RenderPipelines.Universal.2D.Runtime` (в URP 17 `Light2D` лежит в отдельной 2D-сборке);
+  - `UnderDeep.UI` → `UnityEngine.UI`, `Unity.TextMeshPro`.
+  
+  Обратных и циклических ссылок нет, у `UnderDeep.Core` по-прежнему `"references": []`.
+- `CaveInSystem` / `FallingRock`: `GetComponent<HealthSystem>()?.TakeDamage()` заменён на `TryGetComponent`, потому что `?.` обходит Unity null-check.
+
+### Добавлено
+- Core: события `TrapTriggered`, `EvacRequested`, enum `TrapType` (изменение аддитивное, существующий API не тронут).
+- Контракт: §3.2 синхронизирован с фактическим графом сборок, обновлён §4.5, добавлен ADR-5.
+
+### Проверено
+- Core не ссылается ни на кого, World — только на Core, Player — на Core + World, Progression — на Core + Player, Platform — на Core.
+- Компиляция Roslyn (C# 9) с эмуляцией asmdef-графа Unity 6000.3: Editor (WebGL / Standalone) и Player WebGL — 0 ошибок. EditMode `WorldTests` — 4/4.
+
+### Известно
+- `Tests/` лежит вне `Assets/`, поэтому Unity эти тесты не компилирует (Test Runner покажет 0 тестов). Чтобы их запустить, нужны тестовые asmdef — требуется согласование контракта.
+
 ## 1.2.0 — 2026-10-19 — WebGL билд-пайплайн для Yandex/VK
 
 ### Добавлено

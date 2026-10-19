@@ -36,7 +36,7 @@ namespace UnderDeep.UI
                 var btn = go.GetComponentInChildren<Button>();
                 bool owned = _save.Meta.purchasedUpgrades.Contains(def.id);
                 bool can = _upgrades.CanPurchase(def);
-                txt.text = $"{def.displayName} — {CostStr(def)} {(owned?\"[КУПЛЕНО]\":\"\")}\n<size=80%>{def.description}</size>";
+                txt.text = $"{def.displayName} — {CostStr(def)} {(owned ? "[КУПЛЕНО]" : "")}\n<size=80%>{def.description}</size>";
                 btn.interactable = can;
                 btn.onClick.AddListener(()=>{ if(_upgrades.TryPurchase(def)) Rebuild(); });
             }

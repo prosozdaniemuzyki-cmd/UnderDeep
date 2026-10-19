@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnderDeep.Core;
+using UnderDeep.World;
 using UnderDeep.Player;
 
-namespace UnderDeep.World
+namespace UnderDeep.Utils
 {
     /// <summary>Обрабатывает эффекты ловушек при разрушении блока. Вешается на WorldGrid.</summary>
+    // Живёт в Utils (Assembly-CSharp): эффекты бьют по Player (урон/яд/стан), а World → Player запрещено контрактом (asmdef-аудит 1.2.1)
     public class TrapSystem : MonoBehaviour
     {
         private WorldGrid _world;
@@ -37,7 +39,7 @@ namespace UnderDeep.World
                     }
                 }
                 // визуальный эффект — зелёное облако
-                EventBus.Publish(new TrapTriggered{ pos=pos, type=TrapType.Gas });
+                EventBus.Publish(new TrapTriggered(pos, TrapType.Gas));
             }
         }
 
@@ -52,7 +54,7 @@ namespace UnderDeep.World
                     if (drone.TryGetComponent<HealthSystem>(out var hp)) hp.TakeDamage(1);
                     if (drone.TryGetComponent<DroneController>(out var ctrl))
                         drone.StartCoroutine(ShockStun(ctrl, 0.6f));
-                    EventBus.Publish(new TrapTriggered{ pos=pos, type=TrapType.Wire });
+                    EventBus.Publish(new TrapTriggered(pos, TrapType.Wire));
                 }
             }
         }
@@ -93,11 +95,9 @@ namespace UnderDeep.World
                 _tick = 0.5f;
                 if (TryGetComponent<HealthSystem>(out var h)) h.TakeDamage(_dmg);
                 // экран зеленеет
-                EventBus.Publish(new TrapTriggered{ pos=Vector2Int.zero, type=TrapType.GasTick });
+                EventBus.Publish(new TrapTriggered(Vector2Int.zero, TrapType.GasTick));
             }
         }
     }
-
-    public enum TrapType { Gas, Wire, GasTick, CaveIn }
-    public readonly struct TrapTriggered { public readonly Vector2Int pos; public readonly TrapType type; public TrapTriggered(Vector2Int p, TrapType t){pos=p;type=t;} }
+    // TrapType / TrapTriggered перенесены в Core/EventBus.cs
 }

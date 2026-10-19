@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnderDeep.World.TrapSystem;
 using UnderDeep.Core;
 using UnderDeep.World;
 
@@ -17,14 +16,14 @@ namespace UnderDeep.Utils
             EventBus.Subscribe<BlockDamaged>(OnDamaged);
             EventBus.Subscribe<BlockMined>(OnMined);
             EventBus.Subscribe<HealthChanged>(OnHealth);
-            EventBus.Subscribe<TrapSystem.TrapTriggered>(OnTrap);
+            EventBus.Subscribe<TrapTriggered>(OnTrap);
         }
         void OnDisable()
         {
             EventBus.Unsubscribe<BlockDamaged>(OnDamaged);
             EventBus.Unsubscribe<BlockMined>(OnMined);
             EventBus.Unsubscribe<HealthChanged>(OnHealth);
-            EventBus.Unsubscribe<TrapSystem.TrapTriggered>(OnTrap);
+            EventBus.Unsubscribe<TrapTriggered>(OnTrap);
         }
 
         void OnDamaged(BlockDamaged e)
@@ -50,7 +49,7 @@ namespace UnderDeep.Utils
                 // красный флеш
             }
         }
-        void OnTrap(TrapSystem.TrapTriggered e)
+        void OnTrap(TrapTriggered e)
         {
             // звук/частицы по типу
             Debug.Log($"[VFX] Trap {e.type} at {e.pos}");
