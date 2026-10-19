@@ -41,6 +41,10 @@ namespace UnderDeep.Player
             if (ServiceLocator.Get<GameStateMachine>().Current != GameState.Run) return;
             if (_heat != null && _heat.IsStunned) return;
 
+            // Convert one crystal collected this run into emergency drilling fuel.
+            if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+                _fuel?.TryRefuelFromRunCrystal();
+
             Vector2Int? desired = null;
 
             // Mouse / touch

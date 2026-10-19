@@ -19,6 +19,7 @@ namespace UnderDeep.UI
         {
             if (e.reason==RunEndReason.Death) Show($"Критический урон на {e.depth}м\nЛут потерян (кроме артефактов)");
             else if(e.reason==RunEndReason.Evac) Show($"Эвакуация с {e.depth}м\nЛут сохранён!");
+            else if(e.reason==RunEndReason.EmergencyEvac) Show($"Аварийный возврат с {e.depth}м\nЛут забега потерян.");
         }
         void Show(string msg){ panel.SetActive(true); resultText.text=msg; Time.timeScale=0; }
 

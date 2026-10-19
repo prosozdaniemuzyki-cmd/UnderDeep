@@ -61,7 +61,7 @@ namespace UnderDeep.Core
     public enum ResourceType : byte { RustMetal, Crystal, BioGel, Artifact }
     public enum BiomeId : byte { Surface, Metal, BioCaves, Crystal, Infection, Core }
     public enum SanityStage : byte { Clear, LightDistortion, FakeResources, FakeEnemies, Blackout }
-    public enum RunEndReason : byte { Death, Evac, CoreActivate, Escape }
+    public enum RunEndReason : byte { Death, Evac, CoreActivate, Escape, EmergencyEvac }
     public enum GameState { Boot, Base, Run, Paused, Death, Evac, Ending }
     public enum TrapType { Gas, Wire, GasTick, CaveIn }
 }

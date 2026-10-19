@@ -111,6 +111,29 @@ namespace UnderDeep.Tests
             Object.DestroyImmediate(player);
         }
 
+        [Test]
+        public void RunCrystalCanRefuelAndPayForEvacuation()
+        {
+            var player = new GameObject("Fuel and inventory test");
+            var fuel = player.AddComponent<FuelSystem>();
+            var inventory = player.AddComponent<PlayerInventory>();
+            fuel.Consume(100f);
+            inventory.Add(ResourceType.Crystal, 2);
+
+            Assert.IsTrue(fuel.CanRefuelFromCrystal);
+            Assert.IsTrue(fuel.TryRefuelFromRunCrystal());
+            Assert.AreEqual(15f, fuel.Current);
+            Assert.AreEqual(1, inventory.Get(ResourceType.Crystal));
+            Assert.IsTrue(fuel.TryPayEvac());
+            Assert.AreEqual(5f, fuel.Current);
+            Assert.AreEqual(1, inventory.Get(ResourceType.Crystal));
+
+            fuel.Consume(5f);
+            Assert.IsTrue(fuel.TryPayEvac());
+            Assert.AreEqual(0, inventory.Get(ResourceType.Crystal));
+            Object.DestroyImmediate(player);
+        }
+
         static BiomeDef CreateBiome(BiomeId id, int minDepth, int maxDepth, float stone, float crystal)
         {
             var biome = ScriptableObject.CreateInstance<BiomeDef>();

@@ -195,13 +195,18 @@ namespace UnderDeep.Utils
                 new Vector2(0.03f, 0.49f), new Vector2(0.42f, 0.60f), TextAnchor.MiddleLeft);
             var heat = CreateText(panel, "HeatText", "ТЕПЛО 0%", 16,
                 new Vector2(0.03f, 0.37f), new Vector2(0.42f, 0.48f), TextAnchor.MiddleLeft);
-            var status = CreateText(panel, "StatusText", "WASD — движение  •  W + Space — бурить вверх  •  B — эвакуация",
+            var status = CreateText(panel, "StatusText", "WASD — движение  •  W + Space — бурить вверх  •  R — кристалл в топливо  •  B — эвакуация",
                 14, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.10f), TextAnchor.MiddleLeft);
 
-            var evacButton = CreateButton(panel, "EvacuateButton", "ЭВАКУАЦИЯ", 16,
-                new Vector2(0.75f, 0.86f), new Vector2(0.97f, 0.96f));
+            var evacButton = CreateButton(panel, "EvacuateButton", "ЭВАКУАЦИЯ · 10 ТОПЛИВА / 1 КРИСТАЛЛ", 13,
+                new Vector2(0.67f, 0.86f), new Vector2(0.97f, 0.96f));
+            var refuelButton = CreateButton(panel, "RefuelButton", "R · 1 КРИСТАЛЛ → +15 ТОПЛИВА", 13,
+                new Vector2(0.67f, 0.73f), new Vector2(0.97f, 0.83f));
+            var emergencyButton = CreateButton(panel, "EmergencyEvacuateButton", "АВАРИЙНЫЙ ВОЗВРАТ · ПОТЕРЯ ЛУТА", 12,
+                new Vector2(0.67f, 0.60f), new Vector2(0.97f, 0.70f));
+            emergencyButton.gameObject.SetActive(false);
             var returnButton = CreateButton(panel, "ReturnToBaseButton", "НАЗАД НА БАЗУ", 16,
-                new Vector2(0.75f, 0.73f), new Vector2(0.97f, 0.83f));
+                new Vector2(0.67f, 0.47f), new Vector2(0.97f, 0.57f));
             returnButton.gameObject.SetActive(false);
 
             var hudObject = new GameObject("VerticalSliceRunHUD");
@@ -215,6 +220,8 @@ namespace UnderDeep.Utils
             hud.heatText = heat;
             hud.statusText = status;
             hud.evacuateButton = evacButton;
+            hud.refuelButton = refuelButton;
+            hud.emergencyButton = emergencyButton;
             hud.returnButton = returnButton;
             hudObject.SetActive(true);
         }
@@ -508,6 +515,8 @@ namespace UnderDeep.Utils
         public Text heatText;
         public Text statusText;
         public Button evacuateButton;
+        public Button refuelButton;
+        public Button emergencyButton;
         public Button returnButton;
 
         void OnEnable()
@@ -519,6 +528,8 @@ namespace UnderDeep.Utils
             EventBus.Subscribe<HeatChanged>(OnHeat);
             EventBus.Subscribe<RunEnded>(OnRunEnded);
             if (evacuateButton != null) evacuateButton.onClick.AddListener(OnEvacuate);
+            if (refuelButton != null) refuelButton.onClick.AddListener(OnRefuel);
+            if (emergencyButton != null) emergencyButton.onClick.AddListener(OnEmergencyEvacuate);
             if (returnButton != null) returnButton.onClick.AddListener(OnReturn);
         }
 
@@ -531,6 +542,8 @@ namespace UnderDeep.Utils
             EventBus.Unsubscribe<HeatChanged>(OnHeat);
             EventBus.Unsubscribe<RunEnded>(OnRunEnded);
             if (evacuateButton != null) evacuateButton.onClick.RemoveListener(OnEvacuate);
+            if (refuelButton != null) refuelButton.onClick.RemoveListener(OnRefuel);
+            if (emergencyButton != null) emergencyButton.onClick.RemoveListener(OnEmergencyEvacuate);
             if (returnButton != null) returnButton.onClick.RemoveListener(OnReturn);
         }
 
@@ -544,30 +557,64 @@ namespace UnderDeep.Utils
                 if (drone.TryGetComponent<OverheatSystem>(out var overheat)) OnHeat(new HeatChanged(overheat.Heat, overheat.IsStunned));
             }
             if (ServiceLocator.TryGet<PlayerInventory>(out var inventory))
-            {
-                foreach (var pair in inventory.RunLoot)
-                    OnLoot(new ResourceCollected(pair.Key, pair.Value, pair.Value));
-            }
+                OnLoot(new ResourceCollected(ResourceType.RustMetal, 0, inventory.Get(ResourceType.RustMetal)));
+            UpdateActionButtons();
         }
 
-        void OnFuel(FuelChanged evt) => fuelText.text = $"ТОПЛИВО  {evt.current:0}/{evt.max:0}";
-        void OnLoot(ResourceCollected evt) => lootText.text = $"ЛУТ  {evt.type}: {evt.totalRun}";
+        void OnFuel(FuelChanged evt)
+        {
+            fuelText.text = $"ТОПЛИВО  {evt.current:0}/{evt.max:0}";
+            UpdateActionButtons();
+        }
+
+        void OnLoot(ResourceCollected evt)
+        {
+            if (ServiceLocator.TryGet<PlayerInventory>(out var inventory))
+                lootText.text = $"ЛУТ  М:{inventory.Get(ResourceType.RustMetal)}  К:{inventory.Get(ResourceType.Crystal)}  Б:{inventory.Get(ResourceType.BioGel)}";
+            UpdateActionButtons();
+        }
+
         void OnDepth(DepthChanged evt) => depthText.text = $"ГЛУБИНА  {evt.depth} м";
         void OnHealth(HealthChanged evt) => healthText.text = $"СОСТОЯНИЕ  {evt.hp}/{evt.maxHp}";
         void OnHeat(HeatChanged evt) => heatText.text = evt.overheated ? "ТЕПЛО  ПЕРЕГРЕВ" : $"ТЕПЛО  {evt.heat:0}%";
+
+        void UpdateActionButtons()
+        {
+            if (!ServiceLocator.TryGet<FuelSystem>(out var fuel)) return;
+            if (evacuateButton != null) evacuateButton.interactable = fuel.CanPayEvac;
+            // Keep the button clickable while there is tank capacity so it can explain the missing crystal.
+            if (refuelButton != null) refuelButton.interactable = fuel.Current < fuel.maxFuel - 0.01f;
+            if (emergencyButton != null) emergencyButton.gameObject.SetActive(!fuel.CanPayEvac);
+        }
 
         void OnEvacuate()
         {
             if (ServiceLocator.TryGet<RunResultHandler>(out var results)) results.Evacuate();
         }
 
+        void OnRefuel()
+        {
+            if (ServiceLocator.TryGet<FuelSystem>(out var fuel) && !fuel.TryRefuelFromRunCrystal())
+                statusText.text = "НУЖЕН 1 КРИСТАЛЛ И МЕСТО В БАКЕ. КРИСТАЛЛЫ ДОБЫВАЮТСЯ В ГЛУБИНЕ.";
+        }
+
+        void OnEmergencyEvacuate()
+        {
+            if (ServiceLocator.TryGet<RunResultHandler>(out var results)) results.EmergencyEvacuate();
+        }
+
         void OnRunEnded(RunEnded evt)
         {
-            evacuateButton.interactable = false;
-            returnButton.gameObject.SetActive(true);
-            statusText.text = evt.reason == RunEndReason.Death
-                ? $"ДРОИД ПОТЕРЯН НА ГЛУБИНЕ {evt.depth} м — ЛУТ ЗАБЕГА УТРАЧЕН"
-                : "ЭВАКУАЦИЯ — РЕСУРСЫ ДОБАВЛЕНЫ НА БАЗЕ";
+            if (evacuateButton != null) evacuateButton.interactable = false;
+            if (refuelButton != null) refuelButton.interactable = false;
+            if (emergencyButton != null) emergencyButton.gameObject.SetActive(false);
+            if (returnButton != null) returnButton.gameObject.SetActive(true);
+            if (evt.reason == RunEndReason.Death)
+                statusText.text = $"ДРОИД ПОТЕРЯН НА ГЛУБИНЕ {evt.depth} м — ЛУТ ЗАБЕГА УТРАЧЕН";
+            else if (evt.reason == RunEndReason.EmergencyEvac)
+                statusText.text = $"АВАРИЙНЫЙ ВОЗВРАТ С ГЛУБИНЫ {evt.depth} м — ЛУТ ПОТЕРЯН";
+            else
+                statusText.text = "ЭВАКУАЦИЯ — РЕСУРСЫ ДОБАВЛЕНЫ НА БАЗЕ";
         }
 
         void OnReturn()
