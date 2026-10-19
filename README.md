@@ -7,37 +7,38 @@
 
 ![Unity 6000.3](https://img.shields.io/badge/Unity-6000.3-black)
 ![Platform WebGL](https://img.shields.io/badge/WebGL-Yandex%20%7C%20VK-blue)
-![Status Full MVP](https://img.shields.io/badge/MVP-1.1%20Full-brightgreen)
+![Status Vertical Slice Prototype](https://img.shields.io/badge/Status-Vertical%20Slice%20Prototype-orange)
 
 ![promo](Assets/_Project/Art/promo_banner.png)
 
 ---
 
-## Быстрый старт
+## Быстрый старт — vertical slice
 
-1. Открой проект в **Unity 6000.3.7f1** (URP 2D template).
-2. Сцены в Build Settings по порядку:
-   - `Assets/_Project/Scenes/Boot.unity` — вход, инициализация SDK
-   - `Assets/_Project/Scenes/Base.unity` — база/магазин
-   - `Assets/_Project/Scenes/Run.unity` — забег (шахта 50×100, ядро 100)
-3. Нажми Play на `Boot`. В редакторе работает `StandaloneProvider` (PlayerPrefs).
-4. Для генерации дефолтных SO: `UnderDeep → Create Default Upgrades / Biomes`.
-5. Камера и свет: `Global Light 2D` + `PlayerLight` (Point Light2D) уже в префабе дрона.
+1. Открой проект в **Unity 6000.3.7f1**.
+2. Build Settings уже содержит сцены `Boot`, `Base`, `Run` по порядку.
+3. Нажми Play на `Boot`; в редакторе используется `StandaloneProvider`.
+4. На базе нажми «Начать забег». Временный `VerticalSliceBootstrap` создаёт шахту, дроида и HUD при загрузке сцен.
+5. Движение: WASD / стрелки. **W + Space** — бурить вверх; ЛКМ — бурить соседний блок; **B** — эвакуация.
+
+Срез пока не проверен в Unity Play Mode/WebGL в этом окружении. См. [Docs/QUICKSTART.md](Docs/QUICKSTART.md) и [Docs/VERTICAL_SLICE.md](Docs/VERTICAL_SLICE.md).
 
 ### Управление
 
 | Действие | Клавиатура | Мышь/Тач |
 |----------|------------|----------|
 | Движение | WASD / стрелки | — |
-| Бурить | Space (в сторону взгляда) | Клик по соседнему тайлу |
+| Бурить в vertical slice | W + Space (вверх) | Клик по соседнему тайлу |
 | Эвакуация | B / кнопка ЭВАКУАЦИЯ | — |
 | Био-гель (лечение −30 санити) | E | — |
 
 ---
 
-## Что внутри — Full MVP 1.1
+## Целевой MVP (не весь функционал подключён)
 
-**Мир 50×100, 6 биомов** (0-10 поверхность, 10-20 металл, 20-40 био-пещеры, 40-70 кристаллы, 70-90 заражение, 90-100 ядро) — перлин-кластеры, жилы RustMetal, TrapSystem.
+Перечень ниже — дизайн-цель и заготовки систем, а не список проверенных возможностей сборки. Сейчас реализуется и проверяется ограниченный vertical slice: база, шахта, бурение, ресурсы и эвакуация/смерть.
+
+**Планируемый мир 50×100, 6 биомов** (0-10 поверхность, 10-20 металл, 20-40 био-пещеры, 40-70 кристаллы, 70-90 заражение, 90-100 ядро) — перлин-кластеры, жилы RustMetal, TrapSystem.
 
 **Блоки**: Dirt/Stone/RustMetal/CrystalOre/BioGel/GasVein/Wire/CrystalWall/Bedrock/ArtifactChunk + дроп (см. `BALANCE.md`)
 
@@ -123,27 +124,24 @@ await provider.SetLeaderboardAsync("maxDepth", depth);
 
 ---
 
-## MVP Чек-лист
+## Статус vertical slice
 
-- [x] Генерация мира 50×100 (ядро 100), 6 биомов, детерминизм, Perlin-кластеры
-- [x] Дрон: движение по сетке, бурение кликом/Space, топливо, перегрев, свет
-- [x] 10 типов блоков + ловушки (газ/провода/обвалы)
-- [x] Сбор ресурсов, инвентарь забега + мета, био-гель расход
-- [x] 4 врага по биомам (Worm, Firefly, Spider, Hallucination)
-- [x] Безумие 4 стадии + шёпоты + фейк-руды/враги + blackout
-- [x] Эвакуация (B) с сохранением / смерть с потерей + артефакты 5/5
-- [x] 6 апгрейдов + 2 финала + бесконечный режим
-- [x] HUD + магазин + экран смерти с Rewarded + радар + тряска
-- [x] Платформенный слой + jslib для Яндекса/VK + пауза вкладки
+- [x] Добавлена runtime-сборка базовой сцены и сцены забега из `Boot`.
+- [x] Добавлены минимальный магазин, шахта, игрок, HUD, бурение, эвакуация и ветка смерти.
+- [x] Тесты размещены в Unity test assemblies (`Assets/Tests`).
+- [ ] Запустить проект в Unity Editor и проверить Play Mode; тестовый прогон пока не подтверждён.
+- [ ] Проверить WebGL билд. Реклама, лидерборды, полный набор биомов/врагов/финалов и production-арт не входят в текущий slice.
+
+Подробный критерий готовности: [Docs/VERTICAL_SLICE.md](Docs/VERTICAL_SLICE.md).
 
 ---
 
 ## Тесты
 
-- `Tests/EditMode/WorldTests.cs` — биомы, баланс, сохранения
-- `Tests/PlayMode/DrillIntegrationTests.cs` — генерация поверхности
+- `Assets/Tests/EditMode/WorldTests.cs` — биомы, сохранения, детерминизм, бурение и топливо
+- `Assets/Tests/PlayMode/DrillIntegrationTests.cs` — генерация и проходимость шахты
 
-Запуск: `Window → Analysis → Test Runner`.
+Запуск: `Window → General → Test Runner` в Unity Editor.
 
 ---
 

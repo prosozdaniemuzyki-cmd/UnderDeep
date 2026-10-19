@@ -37,17 +37,28 @@ namespace UnderDeep.World
 
         void Awake()
         {
-            _defMap = new Dictionary<BlockType, BlockDef>();
-            foreach (var d in blockDefs) _defMap[d.type]=d;
+            RebuildDefMap();
             ServiceLocator.Register<WorldGrid>(this);
             ServiceLocator.Register<IDrillTarget>(this);
         }
 
         void Start() => Generate();
 
+        void RebuildDefMap()
+        {
+            _defMap ??= new Dictionary<BlockType, BlockDef>();
+            _defMap.Clear();
+            if (blockDefs == null) return;
+            foreach (var def in blockDefs)
+            {
+                if (def != null) _defMap[def.type] = def;
+            }
+        }
+
         public void Generate(int newSeed = -1)
         {
             if (newSeed != -1) seed = newSeed;
+            RebuildDefMap();
             Random.InitState(seed);
             _grid = new BlockData[width, height];
             for(int y=0;y<height;y++) for(int x=0;x<width;x++)
@@ -67,8 +78,10 @@ namespace UnderDeep.World
 
         BiomeDef GetBiome(int depth)
         {
-            foreach(var b in biomes) if(depth>=b.minDepth && depth<b.maxDepth) return b;
-            return biomes.Count>0?biomes[0]:null;
+            if (biomes == null) return null;
+            foreach (var b in biomes)
+                if (b != null && depth >= b.minDepth && depth < b.maxDepth) return b;
+            return biomes.Count > 0 ? biomes[0] : null;
         }
 
         BlockData RollBlock(int x,int y, BiomeDef biome)

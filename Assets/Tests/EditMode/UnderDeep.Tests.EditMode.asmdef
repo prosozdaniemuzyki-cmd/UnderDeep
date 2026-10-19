@@ -1,0 +1,23 @@
+{
+  "name": "UnderDeep.Tests.EditMode",
+  "rootNamespace": "UnderDeep.Tests",
+  "references": [
+    "UnderDeep.Core",
+    "UnderDeep.World",
+    "UnderDeep.Player"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

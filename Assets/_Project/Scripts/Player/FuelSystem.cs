@@ -13,7 +13,11 @@ namespace UnderDeep.Player
         public float Current { get; private set; }
         public bool IsEmpty => Current <= 0.01f;
 
-        void Awake() { Current = maxFuel; }
+        void Awake()
+        {
+            Current = maxFuel;
+            ServiceLocator.Register(this);
+        }
         void Start() => ApplyUpgrades();
 
         void ApplyUpgrades()
@@ -22,7 +26,8 @@ namespace UnderDeep.Player
             int batteries = 0;
             foreach(var id in save.Meta.purchasedUpgrades) if(id.StartsWith("battery")) batteries++;
             maxFuel = 100 + batteries * 20;
-            Current = Mathf.Min(Current, maxFuel);
+            Current = maxFuel;
+            Publish();
         }
 
         public void SetMaxFromUpgrade(int extra) { maxFuel += extra; Publish(); }

@@ -5,6 +5,10 @@ namespace UnderDeep.Progression
 {
     public class RunResultHandler : MonoBehaviour
     {
+        private bool _handledRunEnd;
+
+        void Awake() => ServiceLocator.Register(this);
+
         void OnEnable()
         {
             EventBus.Subscribe<RunEnded>(OnRunEnded);
@@ -17,23 +21,25 @@ namespace UnderDeep.Progression
 
         async void OnRunEnded(RunEnded e)
         {
+            if (_handledRunEnd) return;
+            _handledRunEnd = true;
+
             var save = ServiceLocator.Get<SaveService>();
             bool isEvac = e.reason == RunEndReason.Evac;
-            var inv = ServiceLocator.Get<Player.PlayerInventory>();
-            inv.ApplyToMeta(isEvac);
+            if (ServiceLocator.TryGet<Player.PlayerInventory>(out var inventory))
+                inventory.ApplyToMeta(isEvac);
 
-            if (isEvac)
-            {
-                await save.PersistMetaAsync();
-                await save.SubmitDepthAsync(e.depth);
-            }
             save.Meta.totalRuns++;
+            await save.SubmitDepthAsync(e.depth);
+            await save.PersistMetaAsync();
             Debug.Log($"[Run] Ended {e.reason} depth={e.depth} keep={isEvac}");
         }
 
         // Called by UI button
         public async void Evacuate()
         {
+            if (_handledRunEnd || !ServiceLocator.TryGet<GameStateMachine>(out var currentState) || currentState.Current != GameState.Run)
+                return;
             var fuel = ServiceLocator.Get<Player.FuelSystem>();
             if (!fuel.TryPayEvac())
             {

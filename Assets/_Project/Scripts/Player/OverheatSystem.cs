@@ -13,6 +13,7 @@ namespace UnderDeep.Player
         public float Heat { get; private set; }
         public bool IsStunned { get; private set; }
         private float _stunTimer;
+        private bool _drilledThisFrame;
 
         void Update()
         {
@@ -20,16 +21,21 @@ namespace UnderDeep.Player
             {
                 _stunTimer -= Time.deltaTime;
                 if (_stunTimer <= 0) IsStunned = false;
+                _drilledThisFrame = false;
                 return;
             }
-            // cooling when not drilling - DrillSystem will add heat
-            Heat = Mathf.Max(0, Heat - coolPerSec * Time.deltaTime);
-            EventBus.Publish(new HeatChanged(Heat, false));
+            if (!_drilledThisFrame)
+            {
+                Heat = Mathf.Max(0, Heat - coolPerSec * Time.deltaTime);
+                EventBus.Publish(new HeatChanged(Heat, false));
+            }
+            _drilledThisFrame = false;
         }
 
         public void AddHeat(float dt)
         {
             if (IsStunned) return;
+            _drilledThisFrame = true;
             Heat += heatPerSec * dt;
             if (Heat >= overheatThreshold) TriggerOverheat();
             EventBus.Publish(new HeatChanged(Heat, IsStunned));

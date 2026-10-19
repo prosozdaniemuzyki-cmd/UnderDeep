@@ -15,6 +15,7 @@ namespace UnderDeep.Utils
         async void Start()
         {
             DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
             Debug.Log("[Boot] Starting...");
 
             // Create platform provider
@@ -42,6 +43,16 @@ namespace UnderDeep.Utils
             // Go to Base (shop) scene
             ServiceLocator.Get<GameStateMachine>().SetState(GameState.Base);
             SceneManager.LoadScene("Base");
+        }
+
+        void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            VerticalSliceBootstrap.Configure(scene);
+        }
+
+        void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
         }
 
         void OnApplicationFocus(bool focus)
