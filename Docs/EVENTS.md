@@ -28,7 +28,7 @@ readonly struct DrillEnded { Vector2Int target; bool success; }
 
 ```csharp
 readonly struct ResourceCollected { ResourceType type; int amount; int totalRun; }
-readonly struct RunEnded { RunEndReason reason; int depth; Dictionary<ResourceType,int> loot; }
+readonly struct RunEnded { RunEndReason reason; int depth; Dictionary<ResourceType,int> loot; } // reason: Death/Evac/EmergencyEvac/CoreActivate/Escape
 readonly struct UpgradePurchased { string id; }
 readonly struct ArtifactFound { string artifactId; int count; }
 readonly struct EvacRequested { } // Player (DrillSystem, хоткей B) → Progression (RunResultHandler.Evacuate)

@@ -12,7 +12,7 @@
 - [x] feat(ui): HUD (fuel/heat/sanity/whispers), BaseShop, Death/Evac, RadarVision, ScreenShake
 - [x] feat(platform): IPlatformProvider, Yandex/VK/Standalone, jslib, BootWebGLHooks
 - [x] feat(lighting): URP 2D Global+Point Light, VFX_MANAGER, AudioManager
-- [x] feat(input): WASD + мышь/тач, Space/E/B
+- [x] feat(input): WASD + мышь/тач, Space/E/B; в vertical slice добавлен R для пополнения топлива
 - [x] feat(scenes): Boot/Base/Run сцены + URP 2D свет + камера
 - [x] test: исходные тесты World/Depth/MetaSave и генерации добавлены (до 1.3.0 не были обнаружимы Unity)
 - [x] docs: VFX_LIGHTING, YANDEX_INTEGRATION, SCENES, QUICKSTART, BUILD
@@ -20,6 +20,7 @@
 - [x] build: WebGLBuilder (3 цели), PostBuildHook, Yandex/VK templates (index.html), YANDEX_CHECKLIST/WEBGL_OPTIMIZATION/STORE_LISTING
 - [x] fix(asmdef): аудит сборок 1.2.1 — убраны обратные зависимости World→Player, Player→Enemies/Progression, Progression→World; проект компилируется
 - [x] vertical-slice: runtime-связка Boot → Base → Run; временные шахта, игрок, UI, магазин, эвакуация/смерть
+- [x] vertical-slice: кристалл текущего забега меняется на топливо; аварийная эвакуация предотвращает софтлок
 - [x] test: тесты перенесены в `Assets/Tests/` и добавлены EditMode/PlayMode asmdef
 - [ ] vertical-slice: открыть в Unity 6000.3.7f1, проверить Play Mode и исправить ошибки импорта/сцен
 - [ ] vertical-slice: проверить полный цикл добычи, сохранения эвакуации и потери лута при смерти в редакторе
