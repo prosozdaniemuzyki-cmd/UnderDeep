@@ -14,7 +14,6 @@ namespace UnderDeep.Utils
         {
             if (!target) { if(ServiceLocator.TryGet<Player.DroneController>(out var d)) target=d.transform; else return; }
             var pos = target.position + (Vector3)offset;
-            pos.x = 0; // center horizontally
             pos.y = Mathf.Clamp(pos.y, minY, maxY);
             pos.z = -10;
             transform.position = Vector3.Lerp(transform.position, pos, Time.deltaTime*smooth);

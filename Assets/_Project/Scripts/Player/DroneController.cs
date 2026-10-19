@@ -22,6 +22,7 @@ namespace UnderDeep.Player
         private WorldGrid _world;
         private FuelSystem _fuel;
         private Camera _cam;
+        private int _lastReportedDepth = int.MinValue;
 
         public Vector2Int GridPos => _gridPos;
         public int Depth => _gridPos.y;
@@ -38,8 +39,8 @@ namespace UnderDeep.Player
             _world = ServiceLocator.Get<WorldGrid>();
             _fuel = GetComponent<FuelSystem>();
             _cam = Camera.main;
-            // spawn at surface center
-            _gridPos = new Vector2Int(_world.width/2, 2);
+            // Spawn in the small prepared shaft, directly below the surface.
+            _gridPos = new Vector2Int(_world.width / 2, Mathf.Min(5, _world.height - 1));
             transform.position = _world.GridToWorld(_gridPos);
         }
 
@@ -56,9 +57,12 @@ namespace UnderDeep.Player
             }
             // mouse click drill handled by DrillSystem
 
-            // Depth reporting
-            var gsm = ServiceLocator.Get<GameStateMachine>();
-            gsm.ReportDepth(Depth);
+            // Publish only when entering a new grid row (avoids per-frame event churn).
+            if (_lastReportedDepth != Depth && ServiceLocator.TryGet<GameStateMachine>(out var gsm))
+            {
+                gsm.ReportDepth(Depth);
+                _lastReportedDepth = Depth;
+            }
         }
 
         void FixedUpdate()
