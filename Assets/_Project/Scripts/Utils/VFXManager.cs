@@ -1,8 +1,9 @@
 using UnityEngine;
+using UnderDeep.World.TrapSystem;
 using UnderDeep.Core;
 using UnderDeep.World;
 
-namespace UnderDeep.Core
+namespace UnderDeep.Utils
 {
     public class VFXManager : MonoBehaviour
     {

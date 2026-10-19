@@ -1,8 +1,10 @@
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnderDeep.Core;
+using UnderDeep.Platform;
 
-namespace UnderDeep.Core
+namespace UnderDeep.Utils
 {
     /// <summary>Entry point. Must be first scene in Build Settings.</summary>
     public class Boot : MonoBehaviour
@@ -16,7 +18,7 @@ namespace UnderDeep.Core
             Debug.Log("[Boot] Starting...");
 
             // Create platform provider
-            var provider = Platform.PlatformFactory.Create(useYandex, useVK);
+            var provider = PlatformFactory.Create(useYandex, useVK);
             ServiceLocator.Register<IPlatformProvider>(provider);
             await provider.InitAsync();
 
