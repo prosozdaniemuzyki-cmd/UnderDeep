@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Deep Lone — Ядро Коры-7</title>
+  <style>
+    html,body{margin:0;padding:0;background:#0b1220;overflow:hidden;width:100%;height:100%;}
+    #unity-container{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+    #unity-canvas{width:960px;height:600px;max-width:100vw;max-height:100vh;background:#0b1220;outline:none;box-shadow:0 0 40px rgba(0,255,128,0.15);}
+    #loading{color:#7effa8;font-family:monospace;margin-top:12px;font-size:14px;}
+    #progress{width:260px;height:6px;background:#1a2a3a;border-radius:999px;overflow:hidden;margin-top:8px;}
+    #progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#2aff8a,#00d0ff);transition:width 0.2s;}
+  </style>
+  <!-- Yandex Games SDK -->
+  <script src="https://yandex.ru/games/sdk/v2"></script>
+</head>
+<body>
+  <div id="unity-container">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="loading">Пробуждение LONE-1...</div>
+    <div id="progress"><div id="progress-bar"></div></div>
+  </div>
+
+  <script>
+    // Yandex SDK init (обязателен до GameReady)
+    let ysdk = null, player = null;
+    YaGames.init().then(_ysdk=>{
+      ysdk=_ysdk;
+      window.ysdk=_ysdk;
+      console.log('[Yandex] SDK inited', _ysdk.environment);
+      // auth optional — по клику в игре
+      return _ysdk.getPlayer({ scopes:false }).catch(()=>null);
+    }).then(_p=>{ player=_p; window.player=_p; if(_p) console.log('[Yandex] player', _p.getName()); });
+
+    const canvas = document.getElementById('unity-canvas');
+    const bar = document.getElementById('progress-bar');
+    const loading = document.getElementById('loading');
+
+    const buildUrl = "Build";
+    const loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    const config = {
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "{{{ COMPANY_NAME }}}",
+      productName: "{{{ PRODUCT_NAME }}}",
+      productVersion: "{{{ PRODUCT_VERSION }}}",
+      devicePixelRatio: Math.min(window.devicePixelRatio, 1.5),
+      matchWebGLToCanvasSize: true,
+    };
+
+    // показ interstitial после GameReady — только из Unity через jslib
+    window.ShowInterstitialFromUnity = ()=> ysdk && ysdk.adv.showFullscreenAdv({callbacks:{}});
+
+    // загрузка Unity
+    const script = document.createElement('script');
+    script.src = loaderUrl;
+    script.onload = ()=>{
+      if (!window.createUnityInstance) { loading.textContent='Ошибка загрузчика'; return; }
+      createUnityInstance(canvas, config, (p)=>{
+        bar.style.width = (p*100)+'%';
+        loading.textContent = 'Бурение '+Math.floor(p*100)+'%';
+      }).then(instance=>{
+        window.unityInstance = instance;
+        loading.style.display='none'; document.getElementById('progress').style.display='none';
+        // Сообщаем Yandex что игра готова (иначе не покажут в каталоге)
+        if (ysdk && ysdk.features && ysdk.features.LoadingAPI) ysdk.features.LoadingAPI.ready();
+        canvas.focus();
+      }).catch(e=>{ loading.textContent='Ошибка: '+e; console.error(e); });
+    };
+    document.body.appendChild(script);
+
+    // пауза при скрытии вкладки
+    document.addEventListener('visibilitychange', ()=>{
+      if (window.unityInstance) {
+        if (document.hidden) window.unityInstance.SendMessage('Boot','OnApplicationFocus',0);
+        else window.unityInstance.SendMessage('Boot','OnApplicationFocus',1);
+      }
+    });
+    // anti-scroll на мобиле
+    canvas.addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+    "name": "UnderDeep.Enemies",
+    "rootNamespace": "UnderDeep.Enemies",
+    "references": ["UnderDeep.Core", "UnderDeep.World", "UnderDeep.Player"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

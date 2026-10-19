@@ -1,0 +1,14 @@
+{
+    "name": "UnderDeep.Player",
+    "rootNamespace": "UnderDeep.Player",
+    "references": ["UnderDeep.Core", "UnderDeep.World"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

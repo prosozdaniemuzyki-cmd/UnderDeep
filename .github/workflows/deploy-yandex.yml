@@ -1,0 +1,109 @@
+name: Build & Deploy Yandex Games (Draft)
+
+on:
+  push:
+    branches: [ "main", "arena/**" ]
+  workflow_dispatch:
+
+env:
+  UNITY_VERSION: 6000.3.7f1
+
+jobs:
+  build-yandex:
+    name: Build WebGL (Yandex)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with: { lfs: true }
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-WebGL-${{ hashFiles('Packages/manifest.json') }}
+          restore-keys: Library-WebGL-
+
+      - name: Free disk
+        run: |
+          sudo rm -rf /opt/ghc /usr/local/lib/android /usr/share/dotnet
+          df -h
+
+      - name: Build (game-ci)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          buildName: DeepLone
+          buildsPath: Build
+          customParameters: "-executeMethod UnderDeep.EditorTools.WebGLBuilder.BuildYandex -quit"
+
+      - name: Post-build check
+        run: |
+          ls -lh Build/Yandex/ || true
+          ls -lh Build/Yandex/Build/ | head -n 20
+          du -sh Build/Yandex/*
+          echo "Yandex manifest:" && cat Build/Yandex/yandex-manifest.json || true
+
+      - name: Upload artifact (for download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeepLone-Yandex-${{ github.sha }}
+          path: Build/Yandex
+          retention-days: 7
+
+      - name: ZIP for Yandex Console
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd Build && zip -r DeepLone-Yandex.zip Yandex -x "*.git*"
+          ls -lh DeepLone-Yandex.zip
+
+      - name: Deploy to Yandex Games (Draft) — optional
+        if: github.ref == 'refs/heads/main' && secrets.YANDEX_OAUTH_TOKEN != ''
+        env:
+          TOKEN: ${{ secrets.YANDEX_OAUTH_TOKEN }}
+          GAME_ID: ${{ secrets.YANDEX_GAME_ID }} # цифры из URL консоли: https://yandex.ru/dev/games/GAME_ID
+        run: |
+          echo "Uploading to Yandex Games API..."
+          # 1) Получаем upload URL (документация: https://yandex.ru/dev/games/doc/dg/api/build-upload.html)
+          # POST https://api.games.yandex.net/app/{GAME_ID}/build
+          # Header: Authorization: OAuth $TOKEN
+          # Если GAME_ID не задан — пропускаем, оставляем артефакт
+          if [ -z "$GAME_ID" ]; then
+            echo "::notice::YANDEX_GAME_ID не задан — пропускаем автозаливку, скачай ZIP из артефактов"
+            exit 0
+          fi
+          # Загружаем ZIP (draft). Требует токен с правами yagames:publish
+          curl -X POST "https://api.games.yandex.net/v2/app/$GAME_ID/build" \
+            -H "Authorization: OAuth $TOKEN" \
+            -F "build=@Build/DeepLone-Yandex.zip" \
+            -F "version=${{ github.sha }}" \
+            -F "notes=Auto deploy ${{ github.sha }} from ${{ github.ref_name }}" \
+            | tee yandex_resp.json
+          cat yandex_resp.json
+          echo "::notice::Проверь черновик в https://yandex.ru/dev/games/$GAME_ID"
+
+  # Опционально: публикация VK/Standalone как Pages/Release
+  build-vk:
+    name: Build WebGL (VK)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          buildsPath: Build
+          customParameters: "-executeMethod UnderDeep.EditorTools.WebGLBuilder.BuildVK -quit"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DeepLone-VK-${{ github.sha }}
+          path: Build/VK
