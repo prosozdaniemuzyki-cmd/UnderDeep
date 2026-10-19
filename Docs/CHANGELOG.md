@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — 2026-10-19 — WebGL билд-пайплайн для Yandex/VK
+
+### Добавлено
+- **WebGLBuilder**: 3 цели (Yandex в `Build/Yandex`, VK в `Build/VK`, Standalone в `Build/Standalone`), автонастройка PlayerSettings (Brotli, 960×600, Wasm, no logo)
+- **PostBuildHook**: копирует icon→thumbnail, пишет yandex-manifest.json, проверяет размер <30 MB
+- **Шаблоны**: `Assets/WebGLTemplates/YandexGames/index.html` (YSdk v2, прогресс-бар, LoadingAPI.ready, visibilitychange) и `VKPlay/index.html` (vk-bridge)
+- **Иконки**: icon_512.png, icon_120.png + promo_banner/biomes_preview для стора
+- **Доки сборки**: `Docs/Build/YANDEX_CHECKLIST.md`, `WEBGL_OPTIMIZATION.md`, `STORE_LISTING.md`, `README.md`
+- Обновлены TASKS (билд помечен done)
+
 ## 1.1.0 — 2026-10-19 — Полный MVP: свет, все враги, ловушки, артефакты
 
 ### Добавлено

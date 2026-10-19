@@ -13,6 +13,8 @@
 - [x] feat(input): WASD + мышь/тач, Space/E/B
 - [x] feat(scenes): Boot/Base/Run сцены + URP 2D свет + камера
 - [x] test: EditMode World/Depth/MetaSave, PlayMode генерация
-- [x] docs: VFX_LIGHTING, YANDEX_INTEGRATION, SCENES, QUICKSTART
-- [ ] polish: пиксель-арт тайлы 16×32, анимации дроида (глаз 6 состояний), SFX, иконка/превью ЯИгр
-- [ ] build: WebGL профиль Brotli, проверка GameReady/GameplayStart, тест на Yandex Sandbox
+- [x] docs: VFX_LIGHTING, YANDEX_INTEGRATION, SCENES, QUICKSTART, BUILD
+- [x] art: drone_concept, promo_banner, icon_512/120, biomes_preview
+- [x] build: WebGLBuilder (3 цели), PostBuildHook, Yandex/VK templates (index.html), YANDEX_CHECKLIST/WEBGL_OPTIMIZATION/STORE_LISTING
+- [ ] polish: пиксель-арт тайлы 16×32 атлас, анимации дроида (глаз 6 состояний), SFX, скриншоты для стора
+- [x] test: EditMode World/Depth/MetaSave, PlayMode генерация
