@@ -195,14 +195,14 @@ namespace UnderDeep.Utils
                 new Vector2(0.03f, 0.49f), new Vector2(0.42f, 0.60f), TextAnchor.MiddleLeft);
             var heat = CreateText(panel, "HeatText", "ТЕПЛО 0%", 16,
                 new Vector2(0.03f, 0.37f), new Vector2(0.42f, 0.48f), TextAnchor.MiddleLeft);
-            var status = CreateText(panel, "StatusText", "WASD — движение  •  W + Space — бурить вверх  •  R — кристалл в топливо  •  B — эвакуация",
+            var status = CreateText(panel, "StatusText", "WASD — движение  •  W + Space — бурить вверх  •  R — кристалл в топливо  •  B — эвакуация за 10 топлива",
                 14, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.10f), TextAnchor.MiddleLeft);
 
-            var evacButton = CreateButton(panel, "EvacuateButton", "ЭВАКУАЦИЯ · 10 ТОПЛИВА / 1 КРИСТАЛЛ", 13,
+            var evacButton = CreateButton(panel, "EvacuateButton", "ЭВАКУАЦИЯ · −10 ТОПЛИВА", 13,
                 new Vector2(0.67f, 0.86f), new Vector2(0.97f, 0.96f));
             var refuelButton = CreateButton(panel, "RefuelButton", "R · 1 КРИСТАЛЛ → +15 ТОПЛИВА", 13,
                 new Vector2(0.67f, 0.73f), new Vector2(0.97f, 0.83f));
-            var emergencyButton = CreateButton(panel, "EmergencyEvacuateButton", "АВАРИЙНЫЙ ВОЗВРАТ · ПОТЕРЯ ЛУТА", 12,
+            var emergencyButton = CreateButton(panel, "EmergencyEvacuateButton", "СПАСЕНИЕ · −20 МЕТА-КРИСТАЛЛОВ", 12,
                 new Vector2(0.67f, 0.60f), new Vector2(0.97f, 0.70f));
             emergencyButton.gameObject.SetActive(false);
             var returnButton = CreateButton(panel, "ReturnToBaseButton", "НАЗАД НА БАЗУ", 16,
@@ -508,6 +508,8 @@ namespace UnderDeep.Utils
     /// <summary>Event-driven HUD for the first playable run.</summary>
     public sealed class VerticalSliceRunHUD : MonoBehaviour
     {
+        const string ControlHint = "WASD — движение  •  W + Space — бурить вверх  •  R — кристалл в топливо  •  B — эвакуация за 10 топлива";
+
         public Text depthText;
         public Text lootText;
         public Text fuelText;
@@ -522,6 +524,7 @@ namespace UnderDeep.Utils
         void OnEnable()
         {
             EventBus.Subscribe<FuelChanged>(OnFuel);
+            EventBus.Subscribe<FuelRescueCountdownChanged>(OnFuelRescueCountdown);
             EventBus.Subscribe<ResourceCollected>(OnLoot);
             EventBus.Subscribe<DepthChanged>(OnDepth);
             EventBus.Subscribe<HealthChanged>(OnHealth);
@@ -536,6 +539,7 @@ namespace UnderDeep.Utils
         void OnDisable()
         {
             EventBus.Unsubscribe<FuelChanged>(OnFuel);
+            EventBus.Unsubscribe<FuelRescueCountdownChanged>(OnFuelRescueCountdown);
             EventBus.Unsubscribe<ResourceCollected>(OnLoot);
             EventBus.Unsubscribe<DepthChanged>(OnDepth);
             EventBus.Unsubscribe<HealthChanged>(OnHealth);
@@ -559,12 +563,41 @@ namespace UnderDeep.Utils
             if (ServiceLocator.TryGet<PlayerInventory>(out var inventory))
                 OnLoot(new ResourceCollected(ResourceType.RustMetal, 0, inventory.Get(ResourceType.RustMetal)));
             UpdateActionButtons();
+            UpdateRescueButtonLabel();
         }
 
         void OnFuel(FuelChanged evt)
         {
             fuelText.text = $"ТОПЛИВО  {evt.current:0}/{evt.max:0}";
+            bool countdownActive = ServiceLocator.TryGet<RunResultHandler>(out var results) && results.FuelCountdownActive;
+            if (evt.current > 0 && evt.current < 10 && !countdownActive)
+                statusText.text = "МАЛО ТОПЛИВА: обычная эвакуация требует 10. Критический резерв нельзя пополнить за run-кристалл.";
+            else if (evt.current >= 10 && statusText.text.StartsWith("МАЛО ТОПЛИВА:"))
+                statusText.text = ControlHint;
             UpdateActionButtons();
+        }
+
+        void OnFuelRescueCountdown(FuelRescueCountdownChanged evt)
+        {
+            if (!evt.active) return;
+            int cost = GetRescueCrystalCost();
+            statusText.text = $"ТОПЛИВО НИЗКО: {evt.secondsRemaining} сек. B/кнопка — спасение за {cost} мета-кристаллов; иначе смерть и потеря лута.";
+            if (emergencyButton != null)
+            {
+                emergencyButton.gameObject.SetActive(true);
+                emergencyButton.interactable = ServiceLocator.TryGet<FuelSystem>(out var fuel) && fuel.CanPayDepletedRescue;
+                UpdateRescueButtonLabel();
+            }
+        }
+
+        int GetRescueCrystalCost() => ServiceLocator.TryGet<FuelSystem>(out var fuel) ? fuel.depletedRescueCrystalCost : 20;
+
+        void UpdateRescueButtonLabel()
+        {
+            if (emergencyButton == null) return;
+            var label = emergencyButton.GetComponentInChildren<Text>(true);
+            int balance = ServiceLocator.TryGet<SaveService>(out var save) ? save.Meta.crystal : 0;
+            if (label != null) label.text = $"СПАСЕНИЕ · −{GetRescueCrystalCost()} МЕТА ({balance}/{GetRescueCrystalCost()})";
         }
 
         void OnLoot(ResourceCollected evt)
@@ -582,9 +615,14 @@ namespace UnderDeep.Utils
         {
             if (!ServiceLocator.TryGet<FuelSystem>(out var fuel)) return;
             if (evacuateButton != null) evacuateButton.interactable = fuel.CanPayEvac;
-            // Keep the button clickable while there is tank capacity so it can explain the missing crystal.
-            if (refuelButton != null) refuelButton.interactable = fuel.Current < fuel.maxFuel - 0.01f;
-            if (emergencyButton != null) emergencyButton.gameObject.SetActive(!fuel.CanPayEvac);
+            // Keep clickable below max capacity to explain the low-fuel reserve or missing crystal.
+            if (refuelButton != null) refuelButton.interactable = fuel.Current >= fuel.evacCost && fuel.Current < fuel.maxFuel - 0.01f;
+            if (emergencyButton != null)
+            {
+                bool countdownActive = ServiceLocator.TryGet<RunResultHandler>(out var results) && results.FuelCountdownActive;
+                emergencyButton.gameObject.SetActive(countdownActive);
+                emergencyButton.interactable = countdownActive && fuel.CanPayDepletedRescue;
+            }
         }
 
         void OnEvacuate()
@@ -594,7 +632,12 @@ namespace UnderDeep.Utils
 
         void OnRefuel()
         {
-            if (ServiceLocator.TryGet<FuelSystem>(out var fuel) && !fuel.TryRefuelFromRunCrystal())
+            if (!ServiceLocator.TryGet<FuelSystem>(out var fuel)) return;
+            if (fuel.IsDepleted)
+                statusText.text = $"ТОПЛИВО ИСЧЕРПАНО. ПОПОЛНЕНИЕ ЗАКРЫТО — СПАСЕНИЕ ТОЛЬКО ЗА {fuel.depletedRescueCrystalCost} МЕТА-КРИСТАЛЛОВ.";
+            else if (fuel.Current < fuel.evacCost)
+                statusText.text = "ПОПОЛНЕНИЕ ЗА КРИСТАЛЛ ДОСТУПНО ПРИ ЗАПАСЕ НЕ МЕНЬШЕ 10 ТОПЛИВА.";
+            else if (!fuel.TryRefuelFromRunCrystal())
                 statusText.text = "НУЖЕН 1 КРИСТАЛЛ И МЕСТО В БАКЕ. КРИСТАЛЛЫ ДОБЫВАЮТСЯ В ГЛУБИНЕ.";
         }
 
@@ -610,11 +653,20 @@ namespace UnderDeep.Utils
             if (emergencyButton != null) emergencyButton.gameObject.SetActive(false);
             if (returnButton != null) returnButton.gameObject.SetActive(true);
             if (evt.reason == RunEndReason.Death)
-                statusText.text = $"ДРОИД ПОТЕРЯН НА ГЛУБИНЕ {evt.depth} м — ЛУТ ЗАБЕГА УТРАЧЕН";
+            {
+                lootText.text = "ЛУТ  М:0  К:0  Б:0";
+                statusText.text = $"ДРОИД ПОТЕРЯН НА ГЛУБИНЕ {evt.depth} м — ВЕСЬ ЛУТ ЗАБЕГА УТРАЧЕН";
+            }
             else if (evt.reason == RunEndReason.EmergencyEvac)
-                statusText.text = $"АВАРИЙНЫЙ ВОЗВРАТ С ГЛУБИНЫ {evt.depth} м — ЛУТ ПОТЕРЯН";
+            {
+                lootText.text = "ЛУТ СОХРАНЁН НА БАЗЕ";
+                statusText.text = $"СПАСЕНИЕ ОПЛАЧЕНО: {GetRescueCrystalCost()} МЕТА-КРИСТАЛЛОВ — ЛУТ СОХРАНЁН";
+            }
             else
-                statusText.text = "ЭВАКУАЦИЯ — РЕСУРСЫ ДОБАВЛЕНЫ НА БАЗЕ";
+            {
+                lootText.text = "ЛУТ СОХРАНЁН НА БАЗЕ";
+                statusText.text = "ЭВАКУАЦИЯ ОПЛАЧЕНА 10 ТОПЛИВА — РЕСУРСЫ НА БАЗЕ";
+            }
         }
 
         void OnReturn()

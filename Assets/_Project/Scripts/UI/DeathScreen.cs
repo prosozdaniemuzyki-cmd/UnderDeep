@@ -17,9 +17,9 @@ namespace UnderDeep.UI
 
         void OnEnded(RunEnded e)
         {
-            if (e.reason==RunEndReason.Death) Show($"Критический урон на {e.depth}м\nЛут потерян (кроме артефактов)");
+            if (e.reason==RunEndReason.Death) Show($"Критический урон на {e.depth}м\nВесь лут забега, включая артефакты, потерян.");
             else if(e.reason==RunEndReason.Evac) Show($"Эвакуация с {e.depth}м\nЛут сохранён!");
-            else if(e.reason==RunEndReason.EmergencyEvac) Show($"Аварийный возврат с {e.depth}м\nЛут забега потерян.");
+            else if(e.reason==RunEndReason.EmergencyEvac) Show($"Спасение с {e.depth}м\nОплачено: 20 мета-кристаллов. Лут сохранён.");
         }
         void Show(string msg){ panel.SetActive(true); resultText.text=msg; Time.timeScale=0; }
 

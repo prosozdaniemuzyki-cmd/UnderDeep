@@ -15,6 +15,7 @@ readonly struct TrapTriggered { Vector2Int pos; TrapType type; } // Gas / Wire /
 
 ```csharp
 readonly struct FuelChanged { float current; float max; float delta; }
+readonly struct FuelRescueCountdownChanged { int secondsRemaining; bool active; } // таймер спасения ниже резерва обычной эвакуации
 readonly struct HeatChanged { float heat; bool overheated; }
 readonly struct HealthChanged { int hp; int maxHp; }
 readonly struct SanityChanged { float sanity; SanityStage stage; }

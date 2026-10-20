@@ -37,6 +37,7 @@ namespace UnderDeep.Core
     public readonly struct BiomeEntered { public readonly BiomeId biome; public readonly int depth; public BiomeEntered(BiomeId b,int d){biome=b;depth=d;} }
 
     public readonly struct FuelChanged { public readonly float current; public readonly float max; public readonly float delta; public FuelChanged(float c,float m,float d){current=c;max=m;delta=d;} }
+    public readonly struct FuelRescueCountdownChanged { public readonly int secondsRemaining; public readonly bool active; public FuelRescueCountdownChanged(int s,bool a){secondsRemaining=s;active=a;} }
     public readonly struct HeatChanged { public readonly float heat; public readonly bool overheated; public HeatChanged(float h,bool o){heat=h;overheated=o;} }
     public readonly struct HealthChanged { public readonly int hp; public readonly int maxHp; public HealthChanged(int h,int m){hp=h;maxHp=m;} }
     public readonly struct SanityChanged { public readonly float sanity; public readonly SanityStage stage; public SanityChanged(float s,SanityStage st){sanity=s;stage=st;} }

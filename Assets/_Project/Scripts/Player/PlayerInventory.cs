@@ -46,9 +46,9 @@ namespace UnderDeep.Player
         {
             if (!ServiceLocator.TryGet<SaveService>(out var save)) return;
             if (keep) foreach(var kv in _run) save.Meta.Add(kv.Key, kv.Value);
-            // artifact special
-            if (_run.TryGetValue(ResourceType.Artifact, out var art) && art>0)
-                for(int i=0;i<art;i++) save.Meta.artifacts.Add($"artifact_{save.Meta.artifacts.Count+1}");
+            // Artifacts are run loot too: only bank them after a paid evacuation.
+            if (keep && _run.TryGetValue(ResourceType.Artifact, out var art) && art > 0)
+                for (int i = 0; i < art; i++) save.Meta.artifacts.Add($"artifact_{save.Meta.artifacts.Count + 1}");
             Clear();
         }
     }
