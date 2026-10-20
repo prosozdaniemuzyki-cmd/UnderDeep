@@ -26,17 +26,26 @@ namespace UnderDeep.Player
         public void TakeDamage(int dmg)
         {
             if (_dead || dmg <= 0) return;
+
+            // v2: dash/shield дают неуязвимость
+            if (TryGetComponent<AbilitySystem>(out var abil) && abil.TryBlockDamage(dmg))
+            {
+                EventBus.Publish(new HealthChanged(hp, maxHp));
+                return;
+            }
+
             if (dmg > 0 && !_shieldUsed)
             {
-                // щит спасает 1 раз от смертельного
                 _shieldUsed = true;
-                Debug.Log("[Health] Щит сработал! Спас от урона");
+                Debug.Log("[Health] Щит-модуль сработал! Спас от урона");
                 EventBus.Publish(new HealthChanged(hp, maxHp));
+                EventBus.Publish(new DroneAnimationRequested(DroneAnimState.Damage, Vector2.zero));
                 return;
             }
             hp -= dmg;
             hp = Mathf.Clamp(hp, 0, maxHp);
             EventBus.Publish(new HealthChanged(hp, maxHp));
+            EventBus.Publish(new DroneAnimationRequested(DroneAnimState.Damage, Vector2.zero));
             if (hp <= 0) Die();
         }
 

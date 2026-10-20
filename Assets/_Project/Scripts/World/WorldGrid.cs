@@ -26,6 +26,7 @@ namespace UnderDeep.World
         [Header("Tilemap")]
         public Tilemap tilemap;
         public TileBase dirtTile, stoneTile, rustTile, crystalTile, bioTile, bedrockTile, gasTile, wireTile, crystalWallTile;
+        public TileBase surfaceCrustTile, fuelCanisterTile, energyCellTile;
 
         [Header("Defs")]
         public List<BlockDef> blockDefs;
@@ -55,6 +56,10 @@ namespace UnderDeep.World
             }
         }
 
+        [Header("Surface / Shaft (v2: дрон появляется сверху)")]
+        public int surfaceHeight = 2; // 0..1 — небуримая корка вокруг шахты
+        public Vector2Int ShaftOrigin => new(width/2, surfaceHeight); // центр шахты на поверхности
+
         public void Generate(int newSeed = -1)
         {
             if (newSeed != -1) seed = newSeed;
@@ -66,14 +71,20 @@ namespace UnderDeep.World
                 var biome = GetBiome(y);
                 _grid[x,y] = RollBlock(x,y,biome);
             }
-            // surface air, base corridor
-            for(int y=0;y<3;y++) for(int x=0;x<width;x++) _grid[x,y]=new BlockData{ type=BlockType.Air };
-            // spawn point
+            // v2: поверхность — небуримая корка, кроме шахты
             int sx = width/2;
-            for(int y=0;y<6;y++) _grid[sx,y]=new BlockData{ type=BlockType.Air };
-            for(int y=0;y<6;y++) _grid[sx+1,y]=new BlockData{ type=BlockType.Air };
+            for(int y=0;y<surfaceHeight;y++)
+                for(int x=0;x<width;x++)
+                    _grid[x,y] = new BlockData{ type=BlockType.SurfaceCrust, hp=999 };
+            // начатая шахта 2 тайла шириной, 6 в глубину (куда спускаться сразу)
+            for(int y=0;y<6;y++)
+            {
+                _grid[sx,y]=new BlockData{ type=BlockType.Air };
+                _grid[sx+1,y]=new BlockData{ type=BlockType.Air };
+            }
+            // низ — коренная порода уже в RollBlock
             SyncAllToTilemap();
-            Debug.Log($"[World] Generated {width}x{height} seed={seed}");
+            Debug.Log($"[World] Generated {width}x{height} seed={seed} shaft at x={sx}");
         }
 
         BiomeDef GetBiome(int depth)
@@ -90,6 +101,14 @@ namespace UnderDeep.World
             float r = Random.value;
             if (biome==null) return new BlockData{type=BlockType.Dirt, hp=1};
 
+            // топливные блоки — выбор вместо пополнения за кристаллы
+            float fuelNoise = Mathf.PerlinNoise((x+seed)*0.09f, y*0.07f);
+            if (fuelNoise > 0.88f && y>5)
+            {
+                if (Random.value < 0.35f) return new BlockData{ type=BlockType.FuelCanister, hp=1 };
+                if (Random.value < 0.18f) return new BlockData{ type=BlockType.EnergyCell, hp=1 };
+            }
+
             // кластеры кристаллов (шум)
             float n = Mathf.PerlinNoise(x*0.12f + seed*0.01f, y*0.08f) * 1.2f;
             if (n > 0.85f && biome.crystalChance>0) return new BlockData{type=BlockType.CrystalOre, hp=3};
@@ -100,9 +119,7 @@ namespace UnderDeep.World
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance) return new BlockData{type=BlockType.CrystalOre, hp=3};
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance + biome.bioChance) return new BlockData{type=BlockType.BioGel, hp=1};
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance + biome.bioChance + biome.stoneChance) return new BlockData{type=BlockType.Stone, hp=2};
-            // артефакт — уникальные 5 точек (каждый биом кроме поверхности)
             if (y>15 && y<90 && Random.value < 0.0015f) return new BlockData{type=BlockType.ArtifactChunk, hp=3};
-            // небольшая вертикальная жила RustMetal
             if (Mathf.PerlinNoise(x*0.2f, y*0.05f) > 0.82f) return new BlockData{type=BlockType.RustMetal, hp=2};
             return new BlockData{type=BlockType.Dirt, hp=1};
         }
@@ -127,6 +144,9 @@ namespace UnderDeep.World
             BlockType.CrystalOre => crystalTile,
             BlockType.BioGel => bioTile,
             BlockType.Bedrock => bedrockTile,
+            BlockType.SurfaceCrust => surfaceCrustTile != null ? surfaceCrustTile : bedrockTile,
+            BlockType.FuelCanister => fuelCanisterTile != null ? fuelCanisterTile : crystalTile,
+            BlockType.EnergyCell => energyCellTile != null ? energyCellTile : bioTile,
             BlockType.GasVein => gasTile,
             BlockType.Wire => wireTile,
             BlockType.CrystalWall => crystalWallTile,
@@ -143,9 +163,13 @@ namespace UnderDeep.World
         {
             if (!InBounds(pos)) return false;
             var d = _grid[pos.x,pos.y];
-            if (d.type==BlockType.Air || d.type==BlockType.Bedrock) return false;
-            return _defMap.TryGetValue(d.type, out var def) && def.canDrill;
+            if (d.type==BlockType.Air || d.type==BlockType.Bedrock || d.type==BlockType.SurfaceCrust) return false;
+            if (_defMap.TryGetValue(d.type, out var def)) return def.canDrill;
+            // топливные блоки бурятся даже если нет дефа (дефолт)
+            return d.type==BlockType.FuelCanister || d.type==BlockType.EnergyCell;
         }
+
+        public bool IsSupported(Vector2Int p) => !IsAir(p + Vector2Int.down);
 
         // Called per tick by DrillSystem
         private readonly Dictionary<Vector2Int,float> _progress = new();

@@ -9,18 +9,19 @@ namespace UnderDeep.Player
         public float maxFuel = 100f;
         public float fuelPerSecDrill = 5f;
         public float evacCost = 10f;
-        public float fuelPerRunCrystal = 15f;
+        // v2: пополнение не за кристаллы, а за блоки топлива в шахте
+        public float fuelPerCanister = 25f;
+        public float fuelPerEnergyCell = 15f;
         public int depletedRescueCrystalCost = 20;
 
         public float Current { get; private set; }
         public bool IsEmpty => Current <= 0.01f;
         public bool IsDepleted { get; private set; }
-        public bool CanRefuelFromCrystal => !IsDepleted && Current >= evacCost &&
-            Current < maxFuel - 0.01f && fuelPerRunCrystal > 0 &&
-            ServiceLocator.TryGet<PlayerInventory>(out var inventory) && inventory.Get(ResourceType.Crystal) > 0;
         public bool CanPayEvac => Current >= evacCost;
         public bool CanPayDepletedRescue => Current < evacCost && depletedRescueCrystalCost > 0 &&
             ServiceLocator.TryGet<SaveService>(out var save) && save.Meta.crystal >= depletedRescueCrystalCost;
+        // legacy, оставлен для совместимости тестов — всегда false (v2)
+        public bool CanRefuelFromCrystal => false;
 
         void Awake()
         {
@@ -68,16 +69,13 @@ namespace UnderDeep.Player
             Publish(amount);
         }
 
-        public bool TryRefuelFromRunCrystal()
+        // v2: пополнение только блоками в шахте; метод оставлен для тестов — теперь no-op
+        public bool TryRefuelFromRunCrystal() => false;
+
+        public void OnFuelBlockMined(BlockType t)
         {
-            // Keep the last evac reserve separate from the one-crystal refuel loop.
-            if (IsDepleted || Current < evacCost || Current >= maxFuel - 0.01f || fuelPerRunCrystal <= 0)
-                return false;
-            if (!ServiceLocator.TryGet<PlayerInventory>(out var inventory) ||
-                !inventory.Consume(ResourceType.Crystal, 1)) return false;
-            Refill(fuelPerRunCrystal);
-            Debug.Log($"[Fuel] Refueled +{fuelPerRunCrystal:0} using 1 run crystal");
-            return true;
+            if (t==BlockType.FuelCanister) { Refill(fuelPerCanister); EventBus.Publish(new FuelCanisterCollected(Vector2Int.zero, fuelPerCanister)); }
+            else if (t==BlockType.EnergyCell) { Refill(fuelPerEnergyCell); EventBus.Publish(new FuelCanisterCollected(Vector2Int.zero, fuelPerEnergyCell)); }
         }
 
         void Publish(float delta = 0) => EventBus.Publish(new FuelChanged(Current, maxFuel, -delta));

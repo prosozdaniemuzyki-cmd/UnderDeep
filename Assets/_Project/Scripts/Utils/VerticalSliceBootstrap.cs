@@ -91,6 +91,9 @@ namespace UnderDeep.Utils
             var startButton = CreateButton(panel, "StartRunButton", "НАЧАТЬ ЗАБЕГ", 20,
                 new Vector2(0.28f, 0.07f), new Vector2(0.72f, 0.17f));
             shop.startRunButton = startButton;
+            // подсказка про управление на базе
+            CreateText(panel, "ControlHint", "Управление: WASD/стрелки или геймпад левый стик — движение и авто-бурение. Shift/B — рывок, Q/LT — щит. Поверхность вокруг шахты не бурится.", 12,
+                new Vector2(0.06f, 0.02f), new Vector2(0.94f, 0.06f), TextAnchor.MiddleCenter);
             shop.enabled = true;
         }
 
@@ -144,13 +147,27 @@ namespace UnderDeep.Utils
                 rigidbody.interpolation = RigidbodyInterpolation2D.Interpolate;
                 player = playerObject.AddComponent<DroneController>();
                 player.bodyRenderer = body;
+                // v2: ввод, анимация, способности, свет
+                var inputReader = playerObject.AddComponent<InputReader>();
                 playerObject.AddComponent<FuelSystem>();
                 playerObject.AddComponent<OverheatSystem>();
                 playerObject.AddComponent<HealthSystem>();
                 playerObject.AddComponent<PlayerInventory>();
                 playerObject.AddComponent<SanitySystem>();
                 playerObject.AddComponent<DrillSystem>();
+                playerObject.AddComponent<AbilitySystem>();
+                var animator = playerObject.AddComponent<DroneAnimator>();
+                animator.bodyRenderer = body;
+                // eye will be assigned after CreateEye
                 CreateEye(playerObject.transform);
+                var eye = playerObject.transform.Find("EyeDisplay");
+                if (eye != null) animator.eyeDisplay = eye;
+                // свет дрона
+                playerObject.AddComponent<PlayerLight>();
+
+                // лог для проверки геймпада
+                if (UnityEngine.InputSystem.Gamepad.current != null)
+                    Debug.Log("[VerticalSlice] Gamepad detected: " + UnityEngine.InputSystem.Gamepad.current.displayName);
             }
 
             if (Camera.main != null)
@@ -158,12 +175,13 @@ namespace UnderDeep.Utils
                 var camera = Camera.main;
                 camera.orthographic = true;
                 camera.orthographicSize = 7f;
-                camera.transform.position = new Vector3(world.width * 0.5f, 3f, -10f);
+                // v2: камера на поверхности у шахты
+                camera.transform.position = new Vector3(world.width * 0.5f, 1f, -10f);
                 var follow = camera.GetComponent<CameraFollow>();
                 if (follow == null) follow = camera.gameObject.AddComponent<CameraFollow>();
                 follow.target = player.transform;
-                follow.offset = Vector2.zero;
-                follow.minY = 3f;
+                follow.offset = new Vector2(0, 1f);
+                follow.minY = 0f;
                 follow.maxY = world.height - 3f;
                 follow.smooth = 8f;
             }
@@ -195,13 +213,12 @@ namespace UnderDeep.Utils
                 new Vector2(0.03f, 0.49f), new Vector2(0.42f, 0.60f), TextAnchor.MiddleLeft);
             var heat = CreateText(panel, "HeatText", "ТЕПЛО 0%", 16,
                 new Vector2(0.03f, 0.37f), new Vector2(0.42f, 0.48f), TextAnchor.MiddleLeft);
-            var status = CreateText(panel, "StatusText", "WASD — движение  •  W + Space — бурить вверх  •  R — кристалл в топливо  •  B — эвакуация за 10 топлива",
-                14, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.10f), TextAnchor.MiddleLeft);
+            var status = CreateText(panel, "StatusText", "Движение = авто-бурение в сторону ввода (WASD/стрелки/левый стик геймпада). ЛКМ/тап тоже бурит. B/Start — эвакуация 10 топлива. Ищи жёлтые топливные канистры! Shift/B — рывок, Q/LT — щит.",
+                12, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.10f), TextAnchor.MiddleLeft);
 
             var evacButton = CreateButton(panel, "EvacuateButton", "ЭВАКУАЦИЯ · −10 ТОПЛИВА", 13,
                 new Vector2(0.67f, 0.86f), new Vector2(0.97f, 0.96f));
-            var refuelButton = CreateButton(panel, "RefuelButton", "R · 1 КРИСТАЛЛ → +15 ТОПЛИВА", 13,
-                new Vector2(0.67f, 0.73f), new Vector2(0.97f, 0.83f));
+            // v2: пополнения за кристаллы нет — топливо только блоками в шахте
             var emergencyButton = CreateButton(panel, "EmergencyEvacuateButton", "СПАСЕНИЕ · −20 МЕТА-КРИСТАЛЛОВ", 12,
                 new Vector2(0.67f, 0.60f), new Vector2(0.97f, 0.70f));
             emergencyButton.gameObject.SetActive(false);
@@ -220,7 +237,7 @@ namespace UnderDeep.Utils
             hud.heatText = heat;
             hud.statusText = status;
             hud.evacuateButton = evacButton;
-            hud.refuelButton = refuelButton;
+            hud.refuelButton = null; // v2: убран, топливо только блоками
             hud.emergencyButton = emergencyButton;
             hud.returnButton = returnButton;
             hudObject.SetActive(true);
@@ -301,11 +318,14 @@ namespace UnderDeep.Utils
                 CreateBlock(BlockType.Wire, "Провод", 0.7f, ResourceType.RustMetal, 1, 1, new Color(0.91f, 0.66f, 0.22f)),
                 CreateBlock(BlockType.CrystalWall, "Кристальная стена", 1.1f, ResourceType.Crystal, 2, 2, new Color(0.32f, 0.61f, 0.96f)),
                 CreateBlock(BlockType.ArtifactChunk, "Фрагмент артефакта", 0.9f, ResourceType.Artifact, 0, 0, new Color(0.84f, 0.40f, 0.89f)),
+                CreateBlock(BlockType.SurfaceCrust, "Корка поверхности", 999f, ResourceType.RustMetal, 0, 0, new Color(0.22f, 0.24f, 0.28f), canDrill:false),
+                CreateBlock(BlockType.FuelCanister, "Топливная канистра", 0.5f, ResourceType.RustMetal, 0, 0, new Color(0.95f, 0.75f, 0.15f), fuelReward:25f),
+                CreateBlock(BlockType.EnergyCell, "Энергоячейка", 1.0f, ResourceType.Crystal, 0, 0, new Color(0.20f, 0.95f, 0.45f), fuelReward:15f),
                 CreateBlock(BlockType.Bedrock, "Коренная порода", 999f, ResourceType.RustMetal, 0, 0, new Color(0.13f, 0.14f, 0.17f)),
             };
         }
 
-        static BlockDef CreateBlock(BlockType type, string title, float hardness, ResourceType drop, int min, int max, Color color)
+        static BlockDef CreateBlock(BlockType type, string title, float hardness, ResourceType drop, int min, int max, Color color, bool canDrill = true, float fuelReward = 0)
         {
             var def = ScriptableObject.CreateInstance<BlockDef>();
             def.name = type.ToString();
@@ -315,7 +335,9 @@ namespace UnderDeep.Utils
             def.dropType = drop;
             def.dropMin = min;
             def.dropMax = max;
-            def.canDrill = type != BlockType.Bedrock;
+            def.canDrill = canDrill && type != BlockType.Bedrock && type != BlockType.SurfaceCrust;
+            def.isSurfaceCrust = type == BlockType.SurfaceCrust;
+            def.fuelReward = fuelReward;
             def.tileColor = color;
             return def;
         }
@@ -344,11 +366,14 @@ namespace UnderDeep.Utils
                     case BlockType.Wire: _wireTile = tile; break;
                     case BlockType.CrystalWall: _crystalWallTile = tile; break;
                     case BlockType.Bedrock: _bedrockTile = tile; break;
+                    case BlockType.SurfaceCrust: _surfaceCrustTile = tile; break;
+                    case BlockType.FuelCanister: _fuelCanisterTile = tile; break;
+                    case BlockType.EnergyCell: _energyCellTile = tile; break;
                 }
             }
         }
 
-        static TileBase _dirtTile, _stoneTile, _rustTile, _crystalTile, _bioTile, _bedrockTile, _gasTile, _wireTile, _crystalWallTile;
+        static TileBase _dirtTile, _stoneTile, _rustTile, _crystalTile, _bioTile, _bedrockTile, _gasTile, _wireTile, _crystalWallTile, _surfaceCrustTile, _fuelCanisterTile, _energyCellTile;
 
         static void AssignTiles(WorldGrid world)
         {
@@ -361,6 +386,9 @@ namespace UnderDeep.Utils
             world.gasTile = _gasTile;
             world.wireTile = _wireTile;
             world.crystalWallTile = _crystalWallTile;
+            world.surfaceCrustTile = _surfaceCrustTile;
+            world.fuelCanisterTile = _fuelCanisterTile;
+            world.energyCellTile = _energyCellTile;
         }
 
         static Sprite PixelSprite
@@ -632,13 +660,8 @@ namespace UnderDeep.Utils
 
         void OnRefuel()
         {
-            if (!ServiceLocator.TryGet<FuelSystem>(out var fuel)) return;
-            if (fuel.IsDepleted)
-                statusText.text = $"ТОПЛИВО ИСЧЕРПАНО. ПОПОЛНЕНИЕ ЗАКРЫТО — СПАСЕНИЕ ТОЛЬКО ЗА {fuel.depletedRescueCrystalCost} МЕТА-КРИСТАЛЛОВ.";
-            else if (fuel.Current < fuel.evacCost)
-                statusText.text = "ПОПОЛНЕНИЕ ЗА КРИСТАЛЛ ДОСТУПНО ПРИ ЗАПАСЕ НЕ МЕНЬШЕ 10 ТОПЛИВА.";
-            else if (!fuel.TryRefuelFromRunCrystal())
-                statusText.text = "НУЖЕН 1 КРИСТАЛЛ И МЕСТО В БАКЕ. КРИСТАЛЛЫ ДОБЫВАЮТСЯ В ГЛУБИНЕ.";
+            // v2: пополнение только топливными блоками в шахте (жёлтые канистры/энергоячейки), кристаллы больше не конвертятся
+            statusText.text = "ТОПЛИВО — ТОЛЬКО В ШАХТЕ: ИЩИ ЖЁЛТЫЕ КАНИСТРЫ (+25) И ЗЕЛЁНЫЕ ЯЧЕЙКИ (+15). ВЫБИРАЙ: ЛУТ ИЛИ ТОПЛИВО.";
         }
 
         void OnEmergencyEvacuate()

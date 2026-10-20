@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnderDeep.Core;
 using UnderDeep.World;
 
@@ -12,8 +11,13 @@ namespace UnderDeep.Player
         public float moveSpeed = 5f;
         public float slowFactorWhenNoFuel = 0.5f;
 
+        [Header("Gravity (v2: дрон появляется сверху и падает вниз)")]
+        public float gravity = 18f;
+        public float terminalVelocity = 10f;
+        public float fallThreshold = 0.1f;
+
         [Header("References")]
-        public Transform eyeDisplay; // зелёный глаз
+        public Transform eyeDisplay;
         public SpriteRenderer bodyRenderer;
 
         private Rigidbody2D _rb;
@@ -21,11 +25,23 @@ namespace UnderDeep.Player
         private Vector2Int _gridPos;
         private WorldGrid _world;
         private FuelSystem _fuel;
-        private Camera _cam;
+        private InputReader _inputReader;
         private int _lastReportedDepth = int.MinValue;
+
+        // falling
+        float _fallSpeed;
+        bool _isGrounded;
+        bool _wasFalling;
+
+        // invuln for dash/shield
+        bool _invulnerable;
 
         public Vector2Int GridPos => _gridPos;
         public int Depth => _gridPos.y;
+        public bool IsGrounded => _isGrounded;
+        public bool IsFalling => !_isGrounded && _fallSpeed > 0.1f;
+        public Vector2 RawInput => _input;
+        public bool IsInvulnerable => _invulnerable;
 
         void Awake()
         {
@@ -38,84 +54,158 @@ namespace UnderDeep.Player
         {
             _world = ServiceLocator.Get<WorldGrid>();
             _fuel = GetComponent<FuelSystem>();
-            _cam = Camera.main;
-            // Spawn in the small prepared shaft, directly below the surface.
-            _gridPos = new Vector2Int(_world.width / 2, Mathf.Min(5, _world.height - 1));
+            _inputReader = GetComponent<InputReader>();
+            if (_inputReader == null) _inputReader = gameObject.AddComponent<InputReader>();
+
+            // v2: спавн на поверхности у базы, рядом с шахтой
+            int sx = _world.width / 2;
+            _gridPos = new Vector2Int(sx, Mathf.Min(1, _world.height - 1)); // y=1 — поверхность шахты
             transform.position = _world.GridToWorld(_gridPos);
+            _fallSpeed = 0;
         }
 
         void Update()
         {
-            // Input (new Input System if available, fallback to old)
-            _input = Vector2.zero;
-            if (Keyboard.current != null)
-            {
-                if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) _input.y += 1;
-                if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) _input.y -= 1;
-                if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) _input.x -= 1;
-                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) _input.x += 1;
-            }
-            // mouse click drill handled by DrillSystem
+            // читаем ввод через InputReader (клавиатура + геймпад)
+            if (_inputReader != null) _input = _inputReader.Move;
+            else _input = Vector2.zero;
 
-            // Publish only when entering a new grid row (avoids per-frame event churn).
+            // depth publish
             if (_lastReportedDepth != Depth && ServiceLocator.TryGet<GameStateMachine>(out var gsm))
             {
                 gsm.ReportDepth(Depth);
                 _lastReportedDepth = Depth;
             }
+
+            // глаз — направление
+            if (eyeDisplay)
+            {
+                Vector3 targetScale = _input.sqrMagnitude > 0.01f ? new Vector3(Mathf.Sign(_input.x != 0 ? _input.x : 1), 1, 1) * 1.1f : Vector3.one;
+                eyeDisplay.localScale = Vector3.Lerp(eyeDisplay.localScale, targetScale, Time.deltaTime * 8);
+            }
         }
 
         void FixedUpdate()
         {
-            if (_input == Vector2.zero) return;
+            HandleGravity();
+
+            // движение только если есть ввод
+            if (_input.sqrMagnitude < 0.01f)
+            {
+                // даже без ввода гравитация уже обработана
+                return;
+            }
+
+            // если падавем быстро — не мешаем гравитации, только горизонтальный ввод
+            if (IsFalling && Mathf.Abs(_input.x) < 0.1f) return;
+
             float speed = moveSpeed;
             if (_fuel != null && _fuel.IsEmpty) speed *= slowFactorWhenNoFuel;
 
-            var target = (Vector2)transform.position + _input.normalized * speed * Time.fixedDeltaTime;
+            Vector2 delta = _input.normalized * speed * Time.fixedDeltaTime;
+            // если падаем — ограничиваем вертикальный ввод вниз (гравитация сама)
+            if (IsFalling && _input.y < 0) delta.y = 0;
+
+            var target = (Vector2)transform.position + delta;
             var targetGrid = _world.WorldToGrid(target);
 
-            // grid collision: can only move into Air
             if (_world.CanPass(targetGrid) || targetGrid == _gridPos)
             {
                 _rb.MovePosition(target);
-                if (targetGrid != _gridPos)
+                TryChangeGrid(targetGrid);
+            }
+            else
+            {
+                // скольжение по осям (как раньше)
+                var tryX = new Vector2Int(targetGrid.x, _gridPos.y);
+                var tryY = new Vector2Int(_gridPos.x, targetGrid.y);
+                if (_world.CanPass(tryX))
+                    _rb.MovePosition(new Vector2(target.x, transform.position.y));
+                else if (_world.CanPass(tryY))
+                    _rb.MovePosition(new Vector2(transform.position.x, target.y));
+                // если не можем пройти — DrillSystem начнёт бурить в этом направлении (см. DrillSystem v2)
+            }
+        }
+
+        void HandleGravity()
+        {
+            var below = _gridPos + Vector2Int.down;
+            bool supportBelow = !_world.IsAir(below) && _world.InBounds(below);
+            // если прямо под нами воздух — падаем
+            if (_world.IsAir(below) && _world.InBounds(below))
+            {
+                _isGrounded = false;
+                if (!_wasFalling) EventBus.Publish(new PlayerFalling(_gridPos, _fallSpeed));
+                _wasFalling = true;
+                _fallSpeed = Mathf.Min(terminalVelocity, _fallSpeed + gravity * Time.fixedDeltaTime);
+                var fallDelta = Vector2.down * _fallSpeed * Time.fixedDeltaTime;
+                var target = (Vector2)transform.position + fallDelta;
+                var targetGrid = _world.WorldToGrid(target);
+                // падаем пока Air
+                if (_world.CanPass(targetGrid) || targetGrid == _gridPos)
                 {
-                    var prev = _gridPos;
-                    _gridPos = targetGrid;
-                    EventBus.Publish(new PlayerMoved(prev, _gridPos));
+                    _rb.MovePosition(target);
+                    TryChangeGrid(targetGrid);
+                }
+                else
+                {
+                    // приземлились на блок (который мог быть разрушен бурением — уже Air, но проверяем)
+                    _isGrounded = true;
                 }
             }
             else
             {
-                // slide along axis
-                var tryX = new Vector2Int(targetGrid.x, _gridPos.y);
-                var tryY = new Vector2Int(_gridPos.x, targetGrid.y);
-                if (_world.CanPass(tryX))
+                if (_wasFalling)
                 {
-                    _rb.MovePosition(new Vector2(target.x, transform.position.y));
+                    EventBus.Publish(new PlayerLanded(_gridPos, _fallSpeed));
+                    EventBus.Publish(new DroneAnimationRequested(DroneAnimState.Idle, Vector2.zero));
                 }
-                else if (_world.CanPass(tryY))
-                {
-                    _rb.MovePosition(new Vector2(transform.position.x, target.y));
-                }
+                _wasFalling = false;
+                _isGrounded = supportBelow;
+                _fallSpeed = 0;
             }
+        }
 
-            // eye animation
-            if (eyeDisplay) eyeDisplay.localScale = Vector3.Lerp(eyeDisplay.localScale, _input.magnitude>0.1f? Vector3.one*1.1f: Vector3.one, Time.deltaTime*8);
+        void TryChangeGrid(Vector2Int newGrid)
+        {
+            if (newGrid == _gridPos) return;
+            var prev = _gridPos;
+            _gridPos = newGrid;
+            _world.WorldToGrid(transform.position); // sync sanity
+            EventBus.Publish(new PlayerMoved(prev, _gridPos));
         }
 
         public Vector2Int GetLookTile()
         {
-            if (_input==Vector2.zero) return _gridPos + Vector2Int.down;
-            var dir = new Vector2Int(Mathf.RoundToInt(_input.x), Mathf.RoundToInt(_input.y));
-            if (dir==Vector2Int.zero) dir = Vector2Int.down;
-            return _gridPos + dir;
+            if (_input.sqrMagnitude < 0.01f) return _gridPos + Vector2Int.down;
+            var q = _inputReader != null ? _inputReader.QuantizeDirection(_input) : new Vector2Int(Mathf.RoundToInt(_input.x), Mathf.RoundToInt(_input.y));
+            if (q == Vector2Int.zero) q = Vector2Int.down;
+            return _gridPos + q;
+        }
+
+        public Vector2Int GetAutoDrillTarget()
+        {
+            // приоритет: мышь/тач
+            if (_inputReader != null && _inputReader.MouseDrillActive) return _inputReader.MouseDrillTarget;
+            // иначе направление движения
+            return GetLookTile();
+        }
+
+        public void SetInvulnerable(bool v) => _invulnerable = v;
+        public void TeleportToGrid(Vector2Int pos)
+        {
+            if (!_world.InBounds(pos)) return;
+            var prev = _gridPos;
+            _gridPos = pos;
+            transform.position = _world.GridToWorld(pos);
+            EventBus.Publish(new PlayerMoved(prev, pos));
         }
 
         void OnDrawGizmosSelected()
         {
-            Gizmos.color = Color.green;
+            Gizmos.color = _isGrounded ? Color.green : Color.yellow;
             Gizmos.DrawWireSphere(transform.position, 0.3f);
+            if (_world != null) { Gizmos.color = Color.cyan; Gizmos.DrawLine(transform.position, transform.position + (Vector3)_input); }
         }
     }
 }
