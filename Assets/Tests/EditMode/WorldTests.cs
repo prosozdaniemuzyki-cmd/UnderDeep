@@ -112,25 +112,77 @@ namespace UnderDeep.Tests
         }
 
         [Test]
-        public void RunCrystalCanRefuelAndPayForEvacuation()
+        public void RunCrystalRefuelsAboveReserveButCannotBuyAnEvacuationAtZeroFuel()
         {
             var player = new GameObject("Fuel and inventory test");
             var fuel = player.AddComponent<FuelSystem>();
             var inventory = player.AddComponent<PlayerInventory>();
-            fuel.Consume(100f);
-            inventory.Add(ResourceType.Crystal, 2);
+            var meta = new MetaSave { crystal = 19 };
+            ServiceLocator.Register(new SaveService(null, meta));
 
+            fuel.Consume(89f);
+            inventory.Add(ResourceType.Crystal, 2);
             Assert.IsTrue(fuel.CanRefuelFromCrystal);
             Assert.IsTrue(fuel.TryRefuelFromRunCrystal());
-            Assert.AreEqual(15f, fuel.Current);
-            Assert.AreEqual(1, inventory.Get(ResourceType.Crystal));
-            Assert.IsTrue(fuel.TryPayEvac());
-            Assert.AreEqual(5f, fuel.Current);
+            Assert.AreEqual(26f, fuel.Current);
             Assert.AreEqual(1, inventory.Get(ResourceType.Crystal));
 
-            fuel.Consume(5f);
             Assert.IsTrue(fuel.TryPayEvac());
-            Assert.AreEqual(0, inventory.Get(ResourceType.Crystal));
+            Assert.AreEqual(16f, fuel.Current);
+            Assert.AreEqual(19, meta.crystal);
+            fuel.Consume(7f);
+            Assert.IsFalse(fuel.CanRefuelFromCrystal);
+            Assert.IsFalse(fuel.TryRefuelFromRunCrystal());
+            Assert.IsFalse(fuel.TryPayEvac());
+
+            fuel.Consume(9f);
+            Assert.IsTrue(fuel.IsDepleted);
+            Assert.IsFalse(fuel.TryRefuelFromRunCrystal());
+            Assert.IsFalse(fuel.TryPayEvac());
+            meta.crystal = 20;
+            Assert.IsTrue(fuel.CanPayDepletedRescue);
+            Assert.IsTrue(fuel.TryPayEvac());
+            Assert.AreEqual(0, meta.crystal);
+            Assert.AreEqual(1, inventory.Get(ResourceType.Crystal));
+            Object.DestroyImmediate(player);
+        }
+
+        [Test]
+        public void PaidEvacuationBanksRunLootAndArtifacts()
+        {
+            var player = new GameObject("Inventory evacuation test");
+            var inventory = player.AddComponent<PlayerInventory>();
+            var meta = new MetaSave();
+            ServiceLocator.Register(new SaveService(null, meta));
+            inventory.Add(ResourceType.RustMetal, 5);
+            inventory.Add(ResourceType.Artifact, 1);
+
+            inventory.ApplyToMeta(true);
+
+            Assert.AreEqual(5, meta.rustMetal);
+            Assert.AreEqual(1, meta.artifacts.Count);
+            Assert.AreEqual(0, inventory.Get(ResourceType.RustMetal));
+            Object.DestroyImmediate(player);
+        }
+
+        [Test]
+        public void DeathDiscardsAllRunLootIncludingArtifacts()
+        {
+            var player = new GameObject("Inventory death test");
+            var inventory = player.AddComponent<PlayerInventory>();
+            var meta = new MetaSave();
+            ServiceLocator.Register(new SaveService(null, meta));
+            inventory.Add(ResourceType.RustMetal, 5);
+            inventory.Add(ResourceType.Crystal, 2);
+            inventory.Add(ResourceType.Artifact, 1);
+
+            inventory.ApplyToMeta(false);
+
+            Assert.AreEqual(0, meta.rustMetal);
+            Assert.AreEqual(0, meta.crystal);
+            Assert.AreEqual(0, meta.artifacts.Count);
+            Assert.AreEqual(0, inventory.Total());
+            Assert.AreEqual(0, inventory.Get(ResourceType.Artifact));
             Object.DestroyImmediate(player);
         }
 

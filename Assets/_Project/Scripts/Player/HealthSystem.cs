@@ -46,6 +46,14 @@ namespace UnderDeep.Player
             EventBus.Publish(new HealthChanged(hp, maxHp));
         }
 
+        public void ForceDeath()
+        {
+            if (_dead) return;
+            hp = 0;
+            EventBus.Publish(new HealthChanged(hp, maxHp));
+            Die();
+        }
+
         void Die()
         {
             if (_dead) return;
