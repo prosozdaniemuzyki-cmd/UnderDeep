@@ -37,7 +37,8 @@ namespace UnderDeep.Player
         bool _invulnerable;
 
         public Vector2Int GridPos => _gridPos;
-        public int Depth => _gridPos.y;
+        // Depth теперь считается от поверхности сверху вниз: 0 на поверхности, растёт внизу
+        public int Depth => _world != null ? _world.GetDepthForY(_gridPos.y) : _gridPos.y;
         public bool IsGrounded => _isGrounded;
         public bool IsFalling => !_isGrounded && _fallSpeed > 0.1f;
         public Vector2 RawInput => _input;
@@ -57,11 +58,12 @@ namespace UnderDeep.Player
             _inputReader = GetComponent<InputReader>();
             if (_inputReader == null) _inputReader = gameObject.AddComponent<InputReader>();
 
-            // v2: спавн на поверхности у базы, рядом с шахтой
+            // v2 fix: спавн на поверхности СВЕРХУ, спуск ВНИЗ (depth растёт вниз)
             int sx = _world.width / 2;
-            _gridPos = new Vector2Int(sx, Mathf.Min(1, _world.height - 1)); // y=1 — поверхность шахты
+            _gridPos = new Vector2Int(sx, _world.height - 2); // y = 98 при height 100 — внутри шахты у поверхности
             transform.position = _world.GridToWorld(_gridPos);
             _fallSpeed = 0;
+            Debug.Log($"[Drone] Spawn at {_gridPos} world {transform.position} depth {Depth}");
         }
 
         void Update()
