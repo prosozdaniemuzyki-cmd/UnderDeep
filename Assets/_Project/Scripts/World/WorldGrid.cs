@@ -57,8 +57,8 @@ namespace UnderDeep.World
         }
 
         [Header("Surface / Shaft (v2: дрон появляется сверху)")]
-        public int surfaceHeight = 2; // 0..1 — небуримая корка вокруг шахты
-        public Vector2Int ShaftOrigin => new(width/2, surfaceHeight); // центр шахты на поверхности
+        public int surfaceHeight = 2; // верхние ряды — небуримая корка вокруг шахты
+        public Vector2Int ShaftOrigin => new(width/2, height - 1); // верхний центр шахты
 
         public void Generate(int newSeed = -1)
         {
@@ -68,24 +68,28 @@ namespace UnderDeep.World
             _grid = new BlockData[width, height];
             for(int y=0;y<height;y++) for(int x=0;x<width;x++)
             {
-                var biome = GetBiome(y);
-                _grid[x,y] = RollBlock(x,y,biome);
+                // глубина считается сверху: 0 = поверхность (верх), растёт вниз
+                int depth = GetDepthForY(y);
+                var biome = GetBiome(depth);
+                _grid[x,y] = RollBlock(x,y,biome, depth);
             }
-            // v2: поверхность — небуримая корка, кроме шахты
+            // v2: поверхность — верхние ряды небуримая корка, кроме шахты
             int sx = width/2;
-            for(int y=0;y<surfaceHeight;y++)
+            for(int y=height - surfaceHeight; y < height; y++)
                 for(int x=0;x<width;x++)
                     _grid[x,y] = new BlockData{ type=BlockType.SurfaceCrust, hp=999 };
-            // начатая шахта 2 тайла шириной, 6 в глубину (куда спускаться сразу)
-            for(int y=0;y<6;y++)
+            // начатая шахта 2 тайла шириной, 6 в глубину вниз от поверхности
+            for(int y=height-1; y >= height-6; y--)
             {
                 _grid[sx,y]=new BlockData{ type=BlockType.Air };
                 _grid[sx+1,y]=new BlockData{ type=BlockType.Air };
             }
             // низ — коренная порода уже в RollBlock
             SyncAllToTilemap();
-            Debug.Log($"[World] Generated {width}x{height} seed={seed} shaft at x={sx}");
+            Debug.Log($"[World] Generated {width}x{height} seed={seed} shaft at x={sx} topY={height-1}");
         }
+
+        public int GetDepthForY(int y) => (height - 1) - y; // 0 на поверхности (верх), 99 внизу
 
         BiomeDef GetBiome(int depth)
         {
@@ -95,15 +99,16 @@ namespace UnderDeep.World
             return biomes.Count > 0 ? biomes[0] : null;
         }
 
-        BlockData RollBlock(int x,int y, BiomeDef biome)
+        BlockData RollBlock(int x,int y, BiomeDef biome, int depth = -1)
         {
-            if (y >= height-2) return new BlockData{ type=BlockType.Bedrock, hp=999 };
+            if (depth < 0) depth = GetDepthForY(y);
+            if (y <= 1) return new BlockData{ type=BlockType.Bedrock, hp=999 };
             float r = Random.value;
             if (biome==null) return new BlockData{type=BlockType.Dirt, hp=1};
 
-            // топливные блоки — выбор вместо пополнения за кристаллы
+            // топливные блоки — выбор вместо пополнения за кристаллы ( depth > 5, т.е. не на поверхности)
             float fuelNoise = Mathf.PerlinNoise((x+seed)*0.09f, y*0.07f);
-            if (fuelNoise > 0.88f && y>5)
+            if (fuelNoise > 0.88f && depth > 5)
             {
                 if (Random.value < 0.35f) return new BlockData{ type=BlockType.FuelCanister, hp=1 };
                 if (Random.value < 0.18f) return new BlockData{ type=BlockType.EnergyCell, hp=1 };
@@ -119,7 +124,7 @@ namespace UnderDeep.World
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance) return new BlockData{type=BlockType.CrystalOre, hp=3};
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance + biome.bioChance) return new BlockData{type=BlockType.BioGel, hp=1};
             if (r < biome.gasChance + biome.wireChance + biome.crystalChance + biome.bioChance + biome.stoneChance) return new BlockData{type=BlockType.Stone, hp=2};
-            if (y>15 && y<90 && Random.value < 0.0015f) return new BlockData{type=BlockType.ArtifactChunk, hp=3};
+            if (depth>15 && depth<90 && Random.value < 0.0015f) return new BlockData{type=BlockType.ArtifactChunk, hp=3};
             if (Mathf.PerlinNoise(x*0.2f, y*0.05f) > 0.82f) return new BlockData{type=BlockType.RustMetal, hp=2};
             return new BlockData{type=BlockType.Dirt, hp=1};
         }
