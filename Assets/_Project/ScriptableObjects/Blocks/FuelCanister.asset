@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07cda08db8d18ec40b83a42a004e4935, type: 3}
+  m_Name: FuelCanister
+  m_EditorClassIdentifier: UnderDeep.World::UnderDeep.World.BlockDef
+  type: 12
+  displayName: \u0422\u043e\u043f\u043b\u0438\u0432\u043d\u0430\u044f \u043a\u0430\u043d\u0438\u0441\u0442\u0440\u0430
+  hp: 1
+  hardness: 0.5
+  fuelCostPerSec: 3
+  dropType: 0
+  dropMin: 0
+  dropMax: 0
+  tileColor: {r: 0.95, g: 0.75, b: 0.15, a: 1}
+  solid: 1
+  canDrill: 1
+  isSurfaceCrust: 0
+  fuelReward: 25
+  sprite: {fileID: 0}
