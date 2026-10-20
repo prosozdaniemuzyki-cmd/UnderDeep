@@ -1,31 +1,33 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnderDeep.Core;
 using UnderDeep.World;
 
 namespace UnderDeep.Player
 {
+    /// <summary>v2: бур автоматически в направлении движения/стики, без отдельной кнопки Space. Клик/тап остаётся как альтернатива.</summary>
     public class DrillSystem : MonoBehaviour
     {
         [Header("Config")]
-        public float drillPower = 1f; // multiplied by upgrade
+        public float drillPower = 1f;
         public float autoMagnetRadius = 0f;
+        [Tooltip("Ускорение бурения вниз при падении")] public float downDrillBonus = 1.2f;
 
-        private Camera _cam;
         private WorldGrid _world;
         private FuelSystem _fuel;
         private OverheatSystem _heat;
         private Vector2Int? _target;
         private DroneController _drone;
+        private InputReader _input;
         private bool _noFuelWarningShown;
 
         void Start()
         {
-            _cam = Camera.main;
             _world = ServiceLocator.Get<WorldGrid>();
             _fuel = GetComponent<FuelSystem>();
             _heat = GetComponent<OverheatSystem>();
             _drone = GetComponent<DroneController>();
+            _input = GetComponent<InputReader>();
+            if (_input==null) _input = gameObject.AddComponent<InputReader>();
             ApplyUpgrades();
         }
 
@@ -39,51 +41,47 @@ namespace UnderDeep.Player
 
         void Update()
         {
-            if (ServiceLocator.Get<GameStateMachine>().Current != GameState.Run) return;
+            if (!ServiceLocator.TryGet<GameStateMachine>(out var gsm) || gsm.Current != GameState.Run) return;
 
-            // B remains usable during overheat stun and the low-fuel rescue window.
-            if (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame)
+            // Эвакуация B — работает даже в стане
+            if (_input != null && false) {} // InputReader Dash already handled
+            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.bKey.wasPressedThisFrame)
             {
                 EventBus.Publish(new EvacRequested());
                 if (ServiceLocator.Get<GameStateMachine>().Current != GameState.Run) return;
             }
+            // Gamepad Start/Select тоже эвакуация
+            if (UnityEngine.InputSystem.Gamepad.current != null && UnityEngine.InputSystem.Gamepad.current.startButton.wasPressedThisFrame)
+                EventBus.Publish(new EvacRequested());
+
             if (_heat != null && _heat.IsStunned) return;
 
-            // Convert one crystal collected this run into emergency drilling fuel.
-            if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
-                _fuel?.TryRefuelFromRunCrystal();
+            // v2: убран R → пополнение только блоками FuelCanister (см. FuelSystem.OnFuelBlockMined)
 
-            Vector2Int? desired = null;
+            Vector2Int desired = _drone.GetAutoDrillTarget();
 
-            // Mouse / touch
-            if (Mouse.current != null && Mouse.current.leftButton.isPressed)
-            {
-                var wp = _cam.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-                var grid = _world.WorldToGrid(wp);
-                // only neighbor tiles (including diagonal)
-                if (Vector2Int.Distance(_drone.GridPos, grid) <= 1.5f) desired = grid;
-            }
+            // авто-бурение пока зажат ввод (или тап)
+            bool wantsDrill = false;
+            if (_input.MouseDrillActive) wantsDrill = _world.CanDrill(desired);
+            else if (_input.Move.sqrMagnitude > 0.01f) wantsDrill = _world.CanDrill(desired);
 
-            // Also drill look tile if Space pressed
-            if (Keyboard.current != null && Keyboard.current.spaceKey.isPressed)
-                desired = _drone.GetLookTile();
-
-            if (desired.HasValue)
+            if (wantsDrill)
             {
                 if (_target != desired)
                 {
                     _target = desired;
-                    EventBus.Publish(new DrillStarted(desired.Value));
+                    EventBus.Publish(new DrillStarted(desired));
+                    EventBus.Publish(new DrillAutoStarted(desired, _input.Move));
                 }
-                TickDrill(desired.Value);
+                TickDrill(desired);
             }
             else
             {
                 if (_target.HasValue) { EventBus.Publish(new DrillEnded(_target.Value, false)); _target=null; }
             }
 
-            // bio gel use (лечит и снижает безумие)
-            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+            // био-гель E остаётся
+            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.eKey.wasPressedThisFrame)
             {
                 if (ServiceLocator.TryGet<PlayerInventory>(out var inv) && inv.Get(ResourceType.BioGel)>0)
                 {
@@ -95,11 +93,7 @@ namespace UnderDeep.Player
 
         void TickDrill(Vector2Int pos)
         {
-            if (!_world.CanDrill(pos))
-            {
-                // maybe move into it? no
-                return;
-            }
+            if (!_world.CanDrill(pos)) return;
             if (_fuel != null && _fuel.IsEmpty)
             {
                 if (!_noFuelWarningShown) Debug.Log("[Drill] No fuel; rescue countdown is active.");
@@ -107,17 +101,22 @@ namespace UnderDeep.Player
                 return;
             }
             _noFuelWarningShown = false;
-            // fuel + heat
+
+            float power = drillPower;
+            // бонус вниз при падении/гравитации
+            if (pos == _drone.GridPos + Vector2Int.down && _drone.IsFalling) power *= downDrillBonus;
+
             _fuel?.TryConsumeDrill(Time.deltaTime);
             _heat?.AddHeat(Time.deltaTime);
 
-            var res = _world.DrillTick(pos, drillPower, Time.deltaTime);
+            var res = _world.DrillTick(pos, power, Time.deltaTime);
             if (res.destroyed)
             {
                 EventBus.Publish(new DrillEnded(pos, true));
                 _target = null;
-                // magnet auto pick already via BlockMined -> Inventory
-                // spawn VFX via pool (stub)
+                // топливо-блоки дают топливо
+                if (res.type==BlockType.FuelCanister || res.type==BlockType.EnergyCell)
+                    _fuel?.OnFuelBlockMined(res.type);
             }
         }
     }

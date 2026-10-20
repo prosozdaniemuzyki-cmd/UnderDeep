@@ -112,7 +112,7 @@ namespace UnderDeep.Tests
         }
 
         [Test]
-        public void RunCrystalRefuelsAboveReserveButCannotBuyAnEvacuationAtZeroFuel()
+        public void FuelBlocksRefuelAndCrystalNoLongerDoes()
         {
             var player = new GameObject("Fuel and inventory test");
             var fuel = player.AddComponent<FuelSystem>();
@@ -120,30 +120,35 @@ namespace UnderDeep.Tests
             var meta = new MetaSave { crystal = 19 };
             ServiceLocator.Register(new SaveService(null, meta));
 
-            fuel.Consume(89f);
+            // v2: кристаллы не пополняют топливо — только FuelCanister/EnergyCell
+            fuel.Consume(89f); // 11 осталось
             inventory.Add(ResourceType.Crystal, 2);
-            Assert.IsTrue(fuel.CanRefuelFromCrystal);
-            Assert.IsTrue(fuel.TryRefuelFromRunCrystal());
-            Assert.AreEqual(26f, fuel.Current);
-            Assert.AreEqual(1, inventory.Get(ResourceType.Crystal));
-
-            Assert.IsTrue(fuel.TryPayEvac());
-            Assert.AreEqual(16f, fuel.Current);
-            Assert.AreEqual(19, meta.crystal);
-            fuel.Consume(7f);
             Assert.IsFalse(fuel.CanRefuelFromCrystal);
             Assert.IsFalse(fuel.TryRefuelFromRunCrystal());
+            Assert.AreEqual(11f, fuel.Current);
+
+            // канистра даёт топливо
+            fuel.OnFuelBlockMined(BlockType.FuelCanister);
+            Assert.AreEqual(36f, fuel.Current);
+            // энергоячейка
+            fuel.OnFuelBlockMined(BlockType.EnergyCell);
+            Assert.AreEqual(51f, fuel.Current);
+
+            Assert.IsTrue(fuel.TryPayEvac());
+            Assert.AreEqual(41f, fuel.Current);
+            fuel.Consume(32f); // 9 -> ниже резерва эвакуации
+            Assert.IsFalse(fuel.CanPayEvac);
             Assert.IsFalse(fuel.TryPayEvac());
 
             fuel.Consume(9f);
             Assert.IsTrue(fuel.IsDepleted);
+            Assert.IsFalse(fuel.CanPayEvac);
+            // даже после опустошения кристаллы не помогут — только спасение за мета-кристаллы
             Assert.IsFalse(fuel.TryRefuelFromRunCrystal());
-            Assert.IsFalse(fuel.TryPayEvac());
             meta.crystal = 20;
             Assert.IsTrue(fuel.CanPayDepletedRescue);
             Assert.IsTrue(fuel.TryPayEvac());
             Assert.AreEqual(0, meta.crystal);
-            Assert.AreEqual(1, inventory.Get(ResourceType.Crystal));
             Object.DestroyImmediate(player);
         }
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.6.0 — 2026-10-20 — gameplay v2: auto-drill, surface shaft, gravity, fuel blocks, gamepad, animation base
+
+### Добавлено
+- Управление: авто-бурение в 8-направлении ввода (WASD/стрелки/левый стик геймпада, мёртвая зона 0.2), клик/тап остаётся. Отдельной кнопки бурения нет.
+- Мир: поверхность `SurfaceCrust` небуримая, шахта 2×6 от `width/2`, спавн дрона на `y=1` у базы, проваливание гравитацией (18→10) при бурении вниз, бонус бурения вниз ×1.2.
+- Топливо: блоки `FuelCanister (+25)` / `EnergyCell (+15)` кластерами Perlin — единственный способ пополнения, убран обмен кристаллов (`R`). Выбор лут vs топливо.
+- Геймпад: `InputReader` (Move + Dash `Shift/B` + Shield `Q/LT` + Evac `Start`), 8-way квантование, deadZone 0.2, кривая стика.
+- Способности: `AbilitySystem` — рывок 2 тайла + i-frame 0.3с (8 топлива/25 тепла, кд 1.5с), щит удержанием 6 топлива/с.
+- Анимации: `DroneAnimator` база (Idle/Move/DrillSide/DrillDown/Fall/Damage/Death/Evacuate) через `DroneAnimationRequested` + события `PlayerFalling/Landed/AbilityTriggered/FuelCanisterCollected`.
+- Core: новые `BlockType` SurfaceCrust/FuelCanister/EnergyCell, события анимации/падения/способностей.
+- Bootstrap: шахта, камера `minY 0`, игрок с `InputReader/AbilitySystem/DroneAnimator/PlayerLight`, HUD без кнопки пополнения.
+- Доки: `GAMEPLAY_V2.md`, `BALANCE v0.2`, `VERTICAL_SLICE` обновлён, тесты `WorldTests` под FuelCanister.
+- Предложение 3 вариантов взаимодействия — реализованы Dash+Shield, прыжок отложен.
+
+### Проверено
+- `git diff --check`, синтаксический скан; Unity PlayMode/TestRunner требуют ручной проверки (авто-бурение, гравитация, топливные блоки, геймпад).
+
 ## 1.5.0 — 2026-10-20 — timed fuel rescue and evacuation economy
 
 ### Изменено

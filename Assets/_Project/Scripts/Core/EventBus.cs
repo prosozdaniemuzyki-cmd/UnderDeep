@@ -58,11 +58,21 @@ namespace UnderDeep.Core
     // Запрос эвакуации (хоткей B в Player/DrillSystem) → ловит Progression/RunResultHandler. Развязка Player → Progression
     public readonly struct EvacRequested { }
 
-    public enum BlockType : byte { Air=0, Dirt, Stone, RustMetal, CrystalOre, BioGel, GasVein, Wire, CrystalWall, Bedrock, ArtifactChunk }
+    public enum BlockType : byte { Air=0, Dirt, Stone, RustMetal, CrystalOre, BioGel, GasVein, Wire, CrystalWall, Bedrock, ArtifactChunk, SurfaceCrust, FuelCanister, EnergyCell }
     public enum ResourceType : byte { RustMetal, Crystal, BioGel, Artifact }
     public enum BiomeId : byte { Surface, Metal, BioCaves, Crystal, Infection, Core }
     public enum SanityStage : byte { Clear, LightDistortion, FakeResources, FakeEnemies, Blackout }
     public enum RunEndReason : byte { Death, Evac, CoreActivate, Escape, EmergencyEvac }
     public enum GameState { Boot, Base, Run, Paused, Death, Evac, Ending }
     public enum TrapType { Gas, Wire, GasTick, CaveIn }
+
+    // v2: анимация/способности/гравитация (GAMEPLAY_V2.md)
+    public enum DroneAnimState : byte { Idle, Move, DrillSide, DrillDown, Fall, Damage, Death, Evacuate }
+    public enum AbilityType : byte { Dash, Shield }
+    public readonly struct DrillAutoStarted { public readonly UnityEngine.Vector2Int target; public readonly UnityEngine.Vector2 dir; public DrillAutoStarted(UnityEngine.Vector2Int t, UnityEngine.Vector2 d){target=t;dir=d;} }
+    public readonly struct PlayerFalling { public readonly UnityEngine.Vector2Int from; public readonly float fallSpeed; public PlayerFalling(UnityEngine.Vector2Int f,float s){from=f;fallSpeed=s;} }
+    public readonly struct PlayerLanded { public readonly UnityEngine.Vector2Int pos; public readonly float impact; public PlayerLanded(UnityEngine.Vector2Int p,float i){pos=p;impact=i;} }
+    public readonly struct AbilityTriggered { public readonly AbilityType type; public readonly UnityEngine.Vector2 dir; public AbilityTriggered(AbilityType t, UnityEngine.Vector2 d){type=t;dir=d;} }
+    public readonly struct DroneAnimationRequested { public readonly DroneAnimState state; public readonly UnityEngine.Vector2 dir; public DroneAnimationRequested(DroneAnimState s, UnityEngine.Vector2 d){state=s;dir=d;} }
+    public readonly struct FuelCanisterCollected { public readonly UnityEngine.Vector2Int pos; public readonly float amount; public FuelCanisterCollected(UnityEngine.Vector2Int p,float a){pos=p;amount=a;} }
 }

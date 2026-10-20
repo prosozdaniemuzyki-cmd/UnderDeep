@@ -17,6 +17,8 @@ namespace UnderDeep.World
         public Color tileColor = Color.white;
         public bool solid = true;
         public bool canDrill = true;
+        public bool isSurfaceCrust = false; // небуримые тайлы поверхности вокруг шахты
+        public float fuelReward = 0f; // для FuelCanister/EnergyCell — сколько топлива даёт
         public Sprite sprite;
     }
 }
