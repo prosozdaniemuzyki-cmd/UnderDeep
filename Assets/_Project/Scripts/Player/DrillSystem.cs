@@ -17,6 +17,7 @@ namespace UnderDeep.Player
         private OverheatSystem _heat;
         private Vector2Int? _target;
         private DroneController _drone;
+        private bool _noFuelWarningShown;
 
         void Start()
         {
@@ -39,6 +40,13 @@ namespace UnderDeep.Player
         void Update()
         {
             if (ServiceLocator.Get<GameStateMachine>().Current != GameState.Run) return;
+
+            // B remains usable during overheat stun and the low-fuel rescue window.
+            if (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame)
+            {
+                EventBus.Publish(new EvacRequested());
+                if (ServiceLocator.Get<GameStateMachine>().Current != GameState.Run) return;
+            }
             if (_heat != null && _heat.IsStunned) return;
 
             // Convert one crystal collected this run into emergency drilling fuel.
@@ -83,11 +91,6 @@ namespace UnderDeep.Player
                     GetComponent<SanitySystem>()?.UseBioGel();
                 }
             }
-            // быстрый эвак на B: Player не ссылается на Progression — шлём запрос через EventBus, его ловит RunResultHandler
-            if (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame)
-            {
-                EventBus.Publish(new EvacRequested());
-            }
         }
 
         void TickDrill(Vector2Int pos)
@@ -99,9 +102,11 @@ namespace UnderDeep.Player
             }
             if (_fuel != null && _fuel.IsEmpty)
             {
-                Debug.Log("[Drill] No fuel!");
+                if (!_noFuelWarningShown) Debug.Log("[Drill] No fuel; rescue countdown is active.");
+                _noFuelWarningShown = true;
                 return;
             }
+            _noFuelWarningShown = false;
             // fuel + heat
             _fuel?.TryConsumeDrill(Time.deltaTime);
             _heat?.AddHeat(Time.deltaTime);
