@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1000001}
+  - component: {fileID: 1000003}
+  m_Layer: 0
+  m_Name: WorldGrid
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1000001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fb2d1c2cd397204db34185045dc1e13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  width: 50
+  height: 100
+  seed: 127
+  tilemap: {fileID: 0}
+  dirtTile: {fileID: 0}
+  stoneTile: {fileID: 0}
+  rustTile: {fileID: 0}
+  crystalTile: {fileID: 0}
+  bioTile: {fileID: 0}
+  bedrockTile: {fileID: 0}
+  gasTile: {fileID: 0}
+  wireTile: {fileID: 0}
+  crystalWallTile: {fileID: 0}
+  surfaceCrustTile: {fileID: 0}
+  fuelCanisterTile: {fileID: 0}
+  energyCellTile: {fileID: 0}
+  blockDefs:
+  - {fileID: 11400000, guid: 4e17db0bb68c533699652de114610c4d, type: 2}
+  - {fileID: 11400000, guid: 049c449952e559aaba9fb955e381da59, type: 2}
+  - {fileID: 11400000, guid: a75db2de1f375b438b0315499fa5f05d, type: 2}
+  - {fileID: 11400000, guid: fdba43d0e6c4526197199d07f91ef705, type: 2}
+  - {fileID: 11400000, guid: 4b3cddf47fc45fc3a10b19a381f9109e, type: 2}
+  - {fileID: 11400000, guid: aae4fd907cb357e5a71dd5aff6c54eb1, type: 2}
+  - {fileID: 11400000, guid: a58dd8d4bc465b4986f0439f36bd396c, type: 2}
+  - {fileID: 11400000, guid: e89cd54078d15e9fa9f242d68fe033be, type: 2}
+  - {fileID: 11400000, guid: 215fe45d16185d12ab33c1cb3f1ba0ed, type: 2}
+  - {fileID: 11400000, guid: 43a6910a0ec553669bc124e93d6f9487, type: 2}
+  - {fileID: 11400000, guid: 6bd0d8a6684e5b33bea1d72913dd7160, type: 2}
+  - {fileID: 11400000, guid: 15ff7ff702a55f22acef5f98ac218978, type: 2}
+  - {fileID: 11400000, guid: ac302c7e559d562c8c700ecccb770218, type: 2}
+  biomes:
+  - {fileID: 11400000, guid: e08d83cfdbfa62544b213797f5e2d7a9, type: 2}
+  - {fileID: 11400000, guid: 06a70d0ebc69d4349886e6abd3ea0a49, type: 2}
+  - {fileID: 11400000, guid: a8beafa3de471d2478c512e139d5eadf, type: 2}
+  - {fileID: 11400000, guid: 50cea0c49155f07449bc2a56de597026, type: 2}
+  - {fileID: 11400000, guid: 61df4dd5f34c3ef4b8283924cfb29271, type: 2}
+  - {fileID: 11400000, guid: 78c0eab3a6de6694bb048c9755e23bd3, type: 2}
+  surfaceHeight: 2

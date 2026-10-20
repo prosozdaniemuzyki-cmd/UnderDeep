@@ -120,12 +120,42 @@ namespace UnderDeep.Utils
                 world = gridObject.AddComponent<WorldGrid>();
                 world.tilemap = tilemap;
             }
-            world.width = 50;
-            world.height = 100;
-            world.biomes = LoadBiomesOrCreateDefaults();
-            world.blockDefs = CreateSliceBlockDefs();
-            if (world.tilemap != null && _dirtTile == null) ConfigureGridTiles(world.tilemap);
-            AssignTiles(world);
+            else
+            {
+                // Префаб найден — добиваем недостающее (Grid/Tilemap) чтобы не падало без настроек
+                if (world.GetComponent<Grid>() == null) world.gameObject.AddComponent<Grid>();
+                if (world.tilemap == null)
+                {
+                    world.tilemap = world.GetComponentInChildren<Tilemap>(true);
+                    if (world.tilemap == null)
+                    {
+                        var tilemapObject = new GameObject("Ground", typeof(Tilemap), typeof(TilemapRenderer));
+                        tilemapObject.transform.SetParent(world.transform, false);
+                        world.tilemap = tilemapObject.GetComponent<Tilemap>();
+                    }
+                }
+                // Grid размер по умолчанию если не задан в префабе
+                var gridComp = world.GetComponent<Grid>();
+                if (gridComp != null && gridComp.cellSize == Vector3.zero) gridComp.cellSize = new Vector3(1,1,0);
+            }
+            // Prefab-respecting: не затирать значения из инспектора/префаба
+            if (world.width <= 0) world.width = 50;
+            if (world.height <= 0) world.height = 100;
+            if (world.biomes == null || world.biomes.Count == 0)
+                world.biomes = LoadBiomesOrCreateDefaults();
+            if (world.blockDefs == null || world.blockDefs.Count == 0)
+                world.blockDefs = LoadBlockDefsOrCreateDefaults();
+            // Тайлы — если префаб уже настроен, не перетираем
+            bool hasTiles = world.dirtTile != null || world.stoneTile != null || world.surfaceCrustTile != null;
+            if (!hasTiles)
+            {
+                if (world.tilemap != null && _dirtTile == null) ConfigureGridTiles(world.tilemap);
+                AssignTiles(world);
+            }
+            else
+            {
+                CacheTilesFromWorld(world);
+            }
             if (ServiceLocator.TryGet<SaveService>(out var save) && save.Run != null && save.Run.seed != 0)
                 world.seed = save.Run.seed;
             else if (world.seed == 0)
@@ -168,6 +198,11 @@ namespace UnderDeep.Utils
                 // лог для проверки геймпада
                 if (UnityEngine.InputSystem.Gamepad.current != null)
                     Debug.Log("[VerticalSlice] Gamepad detected: " + UnityEngine.InputSystem.Gamepad.current.displayName);
+            }
+            else
+            {
+                // Префаб найден — добиваем недостающие компоненты (чтобы префаб мог быть минимальным)
+                EnsurePlayerComponents(player.gameObject);
             }
 
             if (Camera.main != null)
@@ -278,6 +313,11 @@ namespace UnderDeep.Utils
         {
             var loaded = Resources.LoadAll<BiomeDef>("");
             if (loaded != null && loaded.Length > 0) return new List<BiomeDef>(loaded);
+            // также пробуем загрузить из ScriptableObjects/Biomes (прямой путь для префаб-настройки)
+            var fromSO = new List<BiomeDef>();
+            foreach (var b in Resources.LoadAll<BiomeDef>("_Project/ScriptableObjects/Biomes"))
+                if (b != null) fromSO.Add(b);
+            if (fromSO.Count > 0) return fromSO;
             return new List<BiomeDef>
             {
                 CreateBiome(BiomeId.Surface, 0, 10, 0.10f, 0, 0, 0, 0),
@@ -287,6 +327,33 @@ namespace UnderDeep.Utils
                 CreateBiome(BiomeId.Infection, 70, 90, 0.30f, 0.10f, 0.02f, 0.01f, 0.05f),
                 CreateBiome(BiomeId.Core, 90, 100, 0.10f, 0.02f, 0, 0, 0),
             };
+        }
+
+        static List<BlockDef> LoadBlockDefsOrCreateDefaults()
+        {
+            // Если дизайнер создал BlockDef ассеты в ScriptableObjects/Blocks — используем их
+            var loaded = Resources.LoadAll<BlockDef>("");
+            // Unity Resources.LoadAll ищет в Resources/, но наши SO лежат в Assets/_Project/ScriptableObjects — 
+            // при генерации префабов они будут скопированы или добавлены в список вручную. Пробуем также Addressables путь.
+            if (loaded != null && loaded.Length >= 5) return new List<BlockDef>(loaded);
+            // fallback — создаём из кода как раньше (для vertical slice без ассетов)
+            return CreateSliceBlockDefs();
+        }
+
+        static void CacheTilesFromWorld(WorldGrid world)
+        {
+            _dirtTile = world.dirtTile ?? _dirtTile;
+            _stoneTile = world.stoneTile ?? _stoneTile;
+            _rustTile = world.rustTile ?? _rustTile;
+            _crystalTile = world.crystalTile ?? _crystalTile;
+            _bioTile = world.bioTile ?? _bioTile;
+            _bedrockTile = world.bedrockTile ?? _bedrockTile;
+            _gasTile = world.gasTile ?? _gasTile;
+            _wireTile = world.wireTile ?? _wireTile;
+            _crystalWallTile = world.crystalWallTile ?? _crystalWallTile;
+            _surfaceCrustTile = world.surfaceCrustTile ?? _surfaceCrustTile;
+            _fuelCanisterTile = world.fuelCanisterTile ?? _fuelCanisterTile;
+            _energyCellTile = world.energyCellTile ?? _energyCellTile;
         }
 
         static BiomeDef CreateBiome(BiomeId id, int min, int max, float stone, float crystal, float bio, float wire, float gas)
@@ -522,6 +589,7 @@ namespace UnderDeep.Utils
 
         static void CreateEye(Transform parent)
         {
+            if (parent.Find("EyeDisplay") != null) return; // префаб уже содержит глаз
             var eyeObject = new GameObject("EyeDisplay", typeof(SpriteRenderer));
             eyeObject.transform.SetParent(parent, false);
             eyeObject.transform.localPosition = new Vector3(0.13f, 0.08f, -0.1f);
@@ -530,6 +598,69 @@ namespace UnderDeep.Utils
             eye.sprite = PixelSprite;
             eye.color = new Color(0.1f, 0.98f, 0.72f);
             eye.sortingOrder = 6;
+        }
+
+        static void EnsurePlayerComponents(GameObject go)
+        {
+            // Добиваем недостающие компоненты, чтобы префаб мог быть минимальным (только Transform+DroneController)
+            if (go.GetComponent<Rigidbody2D>() == null)
+            {
+                var rb = go.AddComponent<Rigidbody2D>();
+                rb.bodyType = RigidbodyType2D.Kinematic;
+                rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+            }
+            if (go.GetComponent<BoxCollider2D>() == null)
+            {
+                var col = go.AddComponent<BoxCollider2D>();
+                col.size = new Vector2(0.8f, 0.8f);
+            }
+            if (go.GetComponent<SpriteRenderer>() == null)
+            {
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = PixelSprite;
+                sr.color = new Color(0.35f, 0.86f, 0.62f);
+                sr.sortingOrder = 5;
+            }
+            if (go.GetComponent<DroneController>() == null) go.AddComponent<DroneController>();
+            if (go.GetComponent<InputReader>() == null) go.AddComponent<InputReader>();
+            if (go.GetComponent<FuelSystem>() == null) go.AddComponent<FuelSystem>();
+            if (go.GetComponent<OverheatSystem>() == null) go.AddComponent<OverheatSystem>();
+            if (go.GetComponent<HealthSystem>() == null) go.AddComponent<HealthSystem>();
+            if (go.GetComponent<PlayerInventory>() == null) go.AddComponent<PlayerInventory>();
+            if (go.GetComponent<SanitySystem>() == null) go.AddComponent<SanitySystem>();
+            if (go.GetComponent<DrillSystem>() == null) go.AddComponent<DrillSystem>();
+            if (go.GetComponent<AbilitySystem>() == null) go.AddComponent<AbilitySystem>();
+            if (go.GetComponent<DroneAnimator>() == null)
+            {
+                var anim = go.AddComponent<DroneAnimator>();
+                anim.bodyRenderer = go.GetComponent<SpriteRenderer>();
+                var eye = go.transform.Find("EyeDisplay");
+                if (eye != null) anim.eyeDisplay = eye;
+            }
+            if (go.GetComponent<PlayerLight>() == null) go.AddComponent<PlayerLight>();
+            // глаз
+            CreateEye(go.transform);
+            // связи аниматора
+            var da = go.GetComponent<DroneAnimator>();
+            if (da != null)
+            {
+                if (da.bodyRenderer == null) da.bodyRenderer = go.GetComponent<SpriteRenderer>();
+                if (da.eyeDisplay == null)
+                {
+                    var eye = go.transform.Find("EyeDisplay");
+                    if (eye != null) da.eyeDisplay = eye;
+                }
+            }
+            var dc = go.GetComponent<DroneController>();
+            if (dc != null)
+            {
+                if (dc.bodyRenderer == null) dc.bodyRenderer = go.GetComponent<SpriteRenderer>();
+                if (dc.eyeDisplay == null)
+                {
+                    var eye = go.transform.Find("EyeDisplay");
+                    if (eye != null) dc.eyeDisplay = eye;
+                }
+            }
         }
     }
 
